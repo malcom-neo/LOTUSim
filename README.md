@@ -1,6 +1,6 @@
 # LOTUSim
 
-testing squash
+testing squash feature
 
 ![Different drones in LOTUSim.](docs/lotusim_environment.png)
 
