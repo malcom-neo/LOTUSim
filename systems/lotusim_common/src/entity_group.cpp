@@ -70,7 +70,7 @@ std::vector<std::vector<uint64_t>> EntityGraph::getAllSets()
     return result;
 }
 
-int EntityGraph::getSetCount()
+std::size_t EntityGraph::getSetCount()
 {
     std::unordered_set<uint64_t> roots;
     for (const auto& [entity, _] : m_parent) {

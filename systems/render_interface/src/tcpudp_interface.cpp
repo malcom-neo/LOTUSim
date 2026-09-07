@@ -28,7 +28,7 @@ TcpUdpInterface::~TcpUdpInterface()
 {
     if (m_udp_socket_ptr && m_udp_socket_ptr->is_open()) {
         boost::system::error_code ec;
-        m_udp_socket_ptr->close(ec);
+        static_cast<void>(m_udp_socket_ptr->close(ec));
         if (ec) {
             // Handle error
             m_logger->warn(
@@ -39,7 +39,7 @@ TcpUdpInterface::~TcpUdpInterface()
     // Close the TCP socket if it is open
     if (m_tcp_socket_ptr && m_tcp_socket_ptr->is_open()) {
         boost::system::error_code ec;
-        m_tcp_socket_ptr->close(ec);
+        static_cast<void>(m_tcp_socket_ptr->close(ec));
         if (ec) {
             // Handle error
             m_logger->warn(
@@ -58,27 +58,39 @@ bool TcpUdpInterface::configureInterface(
     m_udp_socket_ptr = std::make_shared<ip::udp::socket>(m_io_context);
     m_tcp_socket_ptr = std::make_shared<ip::tcp::socket>(m_io_context);
 
-    std::string ip = "127.0.0.1";
-    float udp_port = DEFAULT_UDP_PORT;  // e.g., 23456
-    float tcp_port = DEFAULT_TCP_PORT;  // e.g., 23457
-
+    // Not named `ip`: that identifier is the boost::asio::ip namespace alias.
+    std::string host = "127.0.0.1";
     if (_sdf->HasElement("ip")) {
-        ip = _sdf->Get<std::string>("ip");
+        host = _sdf->Get<std::string>("ip");
     }
-    if (_sdf->HasElement("udp_port")) {
-        udp_port = _sdf->Get<float>("udp_port");
-    }
-    if (_sdf->HasElement("tcp_port")) {
-        tcp_port = _sdf->Get<float>("tcp_port");
-    }
+    // Ports are 0-65535; sdf::Element::Get has no 16-bit overload, so read
+    // wide and narrow once, rejecting out-of-range values instead of wrapping.
+    auto read_port = [&](const std::string& key,
+                         ip::port_type fallback) -> ip::port_type {
+        if (!_sdf->HasElement(key)) {
+            return fallback;
+        }
+        const unsigned raw = _sdf->Get<unsigned>(key);
+        if (raw > 65535U) {
+            m_logger->warn(
+                "TcpUdpInterface: {} = {} is out of range [0, 65535]; using {}",
+                key,
+                raw,
+                fallback);
+            return fallback;
+        }
+        return static_cast<ip::port_type>(raw);
+    };
+    const ip::port_type udp_port = read_port("udp_port", DEFAULT_UDP_PORT);
+    const ip::port_type tcp_port = read_port("tcp_port", DEFAULT_TCP_PORT);
 
     // creating udp socket, no handling required
     m_logger->info(
         "TcpUdpInterface::configureInterface : Creating UDP connection at ip: {} port: {}",
-        ip,
+        host,
         udp_port);
     try {
-        m_udp_endpoint = ip::udp::endpoint(ip::make_address(ip), udp_port);
+        m_udp_endpoint = ip::udp::endpoint(ip::make_address(host), udp_port);
         m_udp_socket_ptr->open(ip::udp::v4());
     } catch (const boost::system::system_error& e) {
         m_logger->error("Failed to open UDP socket: {}", e.what());
@@ -88,16 +100,16 @@ bool TcpUdpInterface::configureInterface(
     // creating tcp socket
     m_logger->info(
         "TcpUdpInterface::configureInterface : Creating TCP connection at ip: {}  tcp_port: {}",
-        ip,
+        host,
         tcp_port);
-    m_tcp_endpoint = ip::tcp::endpoint(ip::make_address(ip), tcp_port);
+    m_tcp_endpoint = ip::tcp::endpoint(ip::make_address(host), tcp_port);
     boost::system::error_code ec;
-    m_tcp_socket_ptr->connect(m_tcp_endpoint, ec);
+    static_cast<void>(m_tcp_socket_ptr->connect(m_tcp_endpoint, ec));
 
     if (ec) {
         m_logger->warn(
             "TcpUdpInterface::configureInterface : TCP Failed to connect to {} on port {}. Error: {}",
-            ip,
+            host,
             tcp_port,
             ec.message());
         return false;
@@ -105,7 +117,7 @@ bool TcpUdpInterface::configureInterface(
     }
     m_logger->info(
         "TcpUdpInterface::configureInterface : TCP Successfully connected to {}  on port {}",
-        ip,
+        host,
         tcp_port);
 
     return true;

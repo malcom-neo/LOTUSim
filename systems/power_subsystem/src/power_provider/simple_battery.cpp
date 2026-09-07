@@ -42,7 +42,7 @@ SimpleBattery::SimpleBattery(
         m_provider_name,
         m_vessel_name,
         m_voltage,
-        getStateOfCharge());
+        SimpleBattery::getStateOfCharge());
 }
 
 void SimpleBattery::receiveLoad(float currentA, float dt)

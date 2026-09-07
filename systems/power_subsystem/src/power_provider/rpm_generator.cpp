@@ -35,7 +35,7 @@ RpmGenerator::RpmGenerator(
     m_provider_type = ProviderType::RPMGenerator;
 
     // subscribe to /<vessel_name>/rpm
-    const std::string rpm_topic = "/" + vessel_name + "/rpm";
+    const std::string rpm_topic = "/" + m_vessel_name + "/rpm";
     m_rpm_sub =
         PowerProvider::m_node->create_subscription<std_msgs::msg::Float64>(
             rpm_topic,

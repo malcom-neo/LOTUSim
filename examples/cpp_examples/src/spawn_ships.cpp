@@ -1,4 +1,6 @@
 #include <csignal>
+#include <exception>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -436,40 +438,48 @@ private:
 
 int main(int argc, char** argv)
 {
-    rclcpp::init(argc, argv);
+    try {
+        rclcpp::init(argc, argv);
 
-    auto node = std::make_shared<ExampleNode>();
+        auto node = std::make_shared<ExampleNode>();
 
-    // create ships
-    node->spawn_multiple_circling_ship(2);
-    rclcpp::executors::SingleThreadedExecutor spawn_wait_exec;
-    spawn_wait_exec.add_node(node);
-    auto start = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start < 3s) {
-        spawn_wait_exec.spin_some(100ms);
+        // create ships
+        node->spawn_multiple_circling_ship(2);
+        rclcpp::executors::SingleThreadedExecutor spawn_wait_exec;
+        spawn_wait_exec.add_node(node);
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < 3s) {
+            spawn_wait_exec.spin_some(100ms);
+        }
+        spawn_wait_exec.remove_node(node);
+        node->send_random_waypoint_request("dtmb_0");
+
+        rclcpp::executors::SingleThreadedExecutor exec;
+        exec.add_node(node);
+
+        // install signal handler after init
+        std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
+        std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
+
+        // Spin manually so we can break on signal
+        while (rclcpp::ok() && !g_shutdown_requested) {
+            exec.spin_some(100ms);
+        }
+
+        // ROS is still up here — cleanup works
+        RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
+        node->delete_all_vessels(exec);
+
+        exec.remove_node(node);
+        node.reset();
+
+        rclcpp::shutdown();
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal: " << e.what() << '\n';
+        return 1;
+    } catch (...) {
+        std::cerr << "Fatal: unknown exception\n";
+        return 1;
     }
-    spawn_wait_exec.remove_node(node);
-    node->send_random_waypoint_request("dtmb_0");
-
-    rclcpp::executors::SingleThreadedExecutor exec;
-    exec.add_node(node);
-
-    // install signal handler after init
-    std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
-    std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
-
-    // Spin manually so we can break on signal
-    while (rclcpp::ok() && !g_shutdown_requested) {
-        exec.spin_some(100ms);
-    }
-
-    // ROS is still up here — cleanup works
-    RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
-    node->delete_all_vessels(exec);
-
-    exec.remove_node(node);
-    node.reset();
-
-    rclcpp::shutdown();
     return 0;
 }

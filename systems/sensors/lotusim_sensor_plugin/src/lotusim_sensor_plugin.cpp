@@ -153,7 +153,8 @@ void LotusimSensorPlugin::OnNewLidarFrame(
 
     msg.is_dense = true;
 
-    size_t total_bytes = _width * _height * _channels * sizeof(float);
+    size_t total_bytes =
+        static_cast<size_t>(_width) * _height * _channels * sizeof(float);
     msg.data.resize(total_bytes);
     memcpy(msg.data.data(), _scan, total_bytes);
 
@@ -199,7 +200,7 @@ void LotusimSensorPlugin::PostUpdate(
         for (auto&& collided_entities : collisions) {
             lotusim_sensor_msgs::msg::Collision collision;
             for (auto&& entity : collided_entities) {
-                collision.entity.push_back(entity);
+                collision.entity.push_back(static_cast<double>(entity));
             }
             collisions_msg.collisions.push_back(collision);
         }

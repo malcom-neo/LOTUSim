@@ -134,8 +134,7 @@ void CustomSensor::Orientation(const gz::math::Quaterniond& _quad)
 bool CustomSensor::EnableMeasurement(
     const std::chrono::steady_clock::duration& _now) const
 {
-    double dt = std::chrono::duration_cast<std::chrono::seconds>(
-                    _now - m_last_measurement_time)
+    double dt = std::chrono::duration<double>(_now - m_last_measurement_time)
                     .count();
     return dt >= 1.0 / m_update_rate && m_is_on;
 }

@@ -1,3 +1,6 @@
+#include <csignal>
+#include <exception>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -255,28 +258,36 @@ private:
 
 int main(int argc, char** argv)
 {
-    rclcpp::init(argc, argv);
+    try {
+        rclcpp::init(argc, argv);
 
-    auto node = std::make_shared<ExampleNode>();
+        auto node = std::make_shared<ExampleNode>();
 
-    node->spawn_multiple_ships(2);
+        node->spawn_multiple_ships(2);
 
-    rclcpp::executors::SingleThreadedExecutor exec;
-    exec.add_node(node);
+        rclcpp::executors::SingleThreadedExecutor exec;
+        exec.add_node(node);
 
-    // install signal handler after init
-    std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
-    std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
+        // install signal handler after init
+        std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
+        std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
 
-    // Spin manually so we can break on signal
-    while (rclcpp::ok() && !g_shutdown_requested) {
-        exec.spin_some(100ms);
+        // Spin manually so we can break on signal
+        while (rclcpp::ok() && !g_shutdown_requested) {
+            exec.spin_some(100ms);
+        }
+
+        // ROS is still up here — cleanup works
+        RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
+        node->delete_all_vessels(exec);
+
+        rclcpp::shutdown();
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal: " << e.what() << '\n';
+        return 1;
+    } catch (...) {
+        std::cerr << "Fatal: unknown exception\n";
+        return 1;
     }
-
-    // ROS is still up here — cleanup works
-    RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
-    node->delete_all_vessels(exec);
-
-    rclcpp::shutdown();
     return 0;
 }

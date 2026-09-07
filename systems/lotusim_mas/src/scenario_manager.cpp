@@ -85,22 +85,23 @@ void ScenarioManager::handleLaunch(
         return;
     }
 
-    m_current_scenario = std::move(cfg);
+    m_current_scenario = std::move(*cfg);
+    const ScenarioConfig& scenario = *m_current_scenario;
 
     if (m_ecm) {
-        applyReferencePosition(m_current_scenario->reference_position);
+        applyReferencePosition(scenario.reference_position);
     }
 
-    int spawned = spawnAgents(*m_current_scenario);
+    int spawned = spawnAgents(scenario);
 
     m_logger->info(
         "ScenarioManager::handleLaunch: Scenario '{}' started. {}/{} agents spawned.",
-        m_current_scenario->name,
+        scenario.name,
         spawned,
-        static_cast<int>(m_current_scenario->agents.size()));
+        static_cast<int>(scenario.agents.size()));
 
     response->success = true;
-    response->message = "Scenario launched: " + m_current_scenario->name;
+    response->message = "Scenario launched: " + scenario.name;
 }
 
 void ScenarioManager::handleStop(
@@ -163,7 +164,7 @@ lotusim_msgs::msg::MASCmd ScenarioManager::agentToMASCmd(
     cmd.geo_point.latitude = agent.position.latitude;
     cmd.geo_point.longitude = agent.position.longitude;
     cmd.geo_point.altitude = agent.position.altitude;
-    cmd.heading = agent.heading;
+    cmd.heading = static_cast<float>(agent.heading);
 
     // heading → yaw (Z-up, East=0, right-hand rule)
     const double yaw = agent.heading * M_PI / 180.0;

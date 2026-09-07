@@ -29,7 +29,7 @@ public:
 
     std::vector<std::vector<uint64_t>> getAllSets();
 
-    int getSetCount();
+    std::size_t getSetCount();
 
     void clearGraph();
 

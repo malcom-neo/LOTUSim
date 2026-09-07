@@ -55,6 +55,9 @@ void AerialMAS::customUserAddEntity(const lotusim_msgs::msg::MASCmd& msg)
     send_goal_options.result_callback =
         std::bind(&AerialMAS::resultCB, this, std::placeholders::_1);
 
+    // Known analyzer false positive on rclcpp_action's promise/lambda plumbing
+    // inside async_send_goal; our call is well-formed.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     m_aerial_mas_client->async_send_goal(aerial_goal_msg, send_goal_options);
 }
 
@@ -72,6 +75,9 @@ void AerialMAS::customUserDeleteEntity(const lotusim_msgs::msg::MASCmd& msg)
     send_goal_options.result_callback =
         std::bind(&AerialMAS::resultCB, this, std::placeholders::_1);
 
+    // Known analyzer false positive on rclcpp_action's promise/lambda plumbing
+    // inside async_send_goal; our call is well-formed.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     m_aerial_mas_client->async_send_goal(aerial_goal_msg, send_goal_options);
 }
 

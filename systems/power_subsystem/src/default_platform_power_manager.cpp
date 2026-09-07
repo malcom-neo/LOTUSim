@@ -64,10 +64,6 @@ void DefaultPlatformPowerManager::handlePowerUpdate(float dt)
                 }
                 return;
             }
-            // switched to new battery — update bus reference
-            bus_voltage = m_batteries[m_active_battery_index]->voltage();
-            if (bus_voltage <= 1e-6f)
-                bus_voltage = activeBusVoltage();
         }
 
         // Step 5: shed loads based on power level

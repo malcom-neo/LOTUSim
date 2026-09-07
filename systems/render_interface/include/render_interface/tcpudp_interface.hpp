@@ -26,8 +26,8 @@ namespace lotusim::gazebo {
 
 namespace ip = boost::asio::ip;
 
-constexpr unsigned short DEFAULT_UDP_PORT = 23456;
-constexpr unsigned short DEFAULT_TCP_PORT = 23457;
+constexpr ip::port_type DEFAULT_UDP_PORT = 23456;
+constexpr ip::port_type DEFAULT_TCP_PORT = 23457;
 
 /**
  * @brief TCPUDP interface for Renderer

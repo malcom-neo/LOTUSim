@@ -7,6 +7,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+#include <optional>
+
 #include "physics_engine_interface/physics_interface_plugin.hpp"
 #include "physics_engine_interface/ros2_interface.hpp"
 #include "physics_engine_interface/xdyn_websocket.hpp"
@@ -52,21 +54,26 @@ void PhysicsInterfacePlugin::Configure(
         10,
         [this](lotusim_msgs::msg::VesselCmdArray::ConstSharedPtr msgs) -> void {
             for (auto&& msg : msgs->cmds) {
-                int entity;
-                if (msg.vessel_name.empty() && msg.entity) {
-                    entity = msg.entity;
-                } else if (
-                    m_vessels_model_map.find(msg.vessel_name) !=
-                    m_vessels_model_map.end()) {
-                    entity = m_vessels_model_map[msg.vessel_name];
-                } else {
+                const std::optional<gz::sim::Entity> entity =
+                    [&]() -> std::optional<gz::sim::Entity> {
+                    if (msg.vessel_name.empty() && msg.entity) {
+                        return msg.entity;
+                    }
+                    auto it = m_vessels_model_map.find(msg.vessel_name);
+                    if (it != m_vessels_model_map.end()) {
+                        return it->second;
+                    }
+                    return std::nullopt;
+                }();
+
+                if (!entity) {
                     m_logger->error(
                         "PhysicsInterfacePlugin::Topic lotusim_vessel_cmd callback failed. No known entity: {}, {}",
                         msg.entity,
                         msg.vessel_name);
                     continue;
                 }
-                (*m_models_cmd_map_ptr)[entity] = std::move(msg.cmd_string);
+                (*m_models_cmd_map_ptr)[*entity] = std::move(msg.cmd_string);
             }
         });
 
@@ -169,8 +176,7 @@ void PhysicsInterfacePlugin::updateVesselState(
             vessel_name = it_name->second;
 
             float target_time =
-                std::chrono::duration_cast<std::chrono::milliseconds>(_info.dt)
-                    .count();
+                std::chrono::duration<float, std::milli>(_info.dt).count();
 
             std::chrono::_V2::system_clock::time_point start_time =
                 std::chrono::system_clock::now();
@@ -201,10 +207,7 @@ void PhysicsInterfacePlugin::updateVesselState(
 
             VesselInformation vessel_info;
             vessel_info.time =
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    _info.simTime)
-                    .count() /
-                1000.0;
+                std::chrono::duration<double>(_info.simTime).count();
             if (lin_vel_opt) {
                 vessel_info.lin_vel = lin_vel_opt.value();
             }

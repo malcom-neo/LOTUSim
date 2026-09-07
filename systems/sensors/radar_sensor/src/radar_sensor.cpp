@@ -249,17 +249,19 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
 {
     const int G = m_psf.grid_size;
     const float Gf = static_cast<float>(G);
+    const std::size_t cells =
+        static_cast<std::size_t>(G) * static_cast<std::size_t>(G);
 
     PSFResult result;
     result.width = G;
     result.height = G;
 
-    std::vector<float> radar_grid(G * G, 0.0f);
-    std::vector<float> lidar_grid(G * G, 0.0f);
+    std::vector<float> radar_grid(cells, 0.0f);
+    std::vector<float> lidar_grid(cells, 0.0f);
 
     if (points.empty()) {
-        result.radar_bgr.assign(G * G * 3, 0);
-        result.lidar_bgr.assign(G * G * 3, 0);
+        result.radar_bgr.assign(cells * 3, 0);
+        result.lidar_bgr.assign(cells * 3, 0);
         return result;
     }
 
@@ -345,8 +347,8 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
         }
 
     // ── Float grid → BGR uint8 ────────────────────────────────────────────
-    result.radar_bgr.resize(G * G * 3);
-    result.lidar_bgr.resize(G * G * 3);
+    result.radar_bgr.resize(cells * 3);
+    result.lidar_bgr.resize(cells * 3);
 
     for (int i = 0; i < G * G; ++i) {
         auto write = [](std::vector<uint8_t>& buf, int i, float v) {

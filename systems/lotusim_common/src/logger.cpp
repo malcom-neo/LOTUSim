@@ -21,7 +21,7 @@ spdlog::level::level_enum getLogLevelFromEnv()
     std::string level_str(env_level);
     // Convert to uppercase for case-insensitive comparison
     for (auto& c : level_str)
-        c = std::toupper(c);
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
     if (level_str == "TRACE")
         return spdlog::level::trace;

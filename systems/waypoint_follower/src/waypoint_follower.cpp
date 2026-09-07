@@ -265,7 +265,10 @@ void WaypointFollowerPlugin::Configure(
     m_status_update_period = 10;
     auto sdfPtr = const_cast<sdf::Element*>(_sdf.get());
     if (sdfPtr->HasElement("update_rate")) {
-        m_status_update_period = 1 / sdfPtr->Get<float>("update_rate");
+        // m_status_update_period is a whole-second count (see
+        // std::chrono::seconds use below); sub-second periods are rounded down.
+        m_status_update_period =
+            static_cast<uint16_t>(1.0F / sdfPtr->Get<float>("update_rate"));
         m_logger->info(
             "WaypointFollowerPlugin::Configure: update period set to  {}s",
             m_status_update_period);
@@ -399,13 +402,12 @@ void WaypointFollowerPlugin::Update(
          it != m_model_load_queue.end();) {
         gz::sim::Entity entity = it->first;
         sdf::ElementPtr lotus_param_sdf = it->second;
-        bool res = load(entity, lotus_param_sdf, _ecm);
-        // Erase new model request even if setup failed,
+        load(entity, lotus_param_sdf, _ecm);
+        // Erase new model request even if setup failed.
         it = m_model_load_queue.erase(it);
     }
 
-    double dt =
-        std::chrono::duration_cast<std::chrono::milliseconds>(_info.dt).count();
+    double dt = std::chrono::duration<double, std::milli>(_info.dt).count();
     // dt in seconds
     double dt_s = dt / 1000.0;
 

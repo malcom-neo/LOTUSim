@@ -213,6 +213,9 @@ bool XdynWebsocket::activateInterface(
             m_logger->info(
                 "XdynWebsocket::activateInterface: Starting connection: {}",
                 m_name_mapping[_entity]);
+            // The VirtualCall the analyzer reports is inside Boost.Asio's
+            // resolver_thread_pool destructor, not our code.
+            // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall)
             m_client.connect(con);
             std::this_thread::sleep_for(std::chrono::seconds(3));
             retry += 1;

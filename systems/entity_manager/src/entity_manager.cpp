@@ -667,11 +667,6 @@ void EntityManager::publishPose(
         auto entity = vessel_map.first;
         auto latLonEle = sphericalCoordinates(entity, _ecm);
         auto pose = worldPose(entity, _ecm);
-        if (!latLonEle) {
-            m_logger->warn(
-                "EntityManager::PostUpdate: Vessel: {} unable to find coordinate. Skip pose update.",
-                vessel_map.second);
-        }
 
         lotusim_msgs::msg::VesselPosition msg;
         msg.vessel_name = vessel_map.second;
@@ -684,9 +679,21 @@ void EntityManager::publishPose(
         msg.pose.orientation.y = pose.Rot().Y();
         msg.pose.orientation.z = pose.Rot().Z();
 
-        msg.geo_point.latitude = latLonEle.value().X();
-        msg.geo_point.longitude = latLonEle.value().Y();
-        msg.geo_point.altitude = latLonEle.value().Z();
+        if (latLonEle) {
+            msg.geo_point.latitude = latLonEle.value().X();
+            msg.geo_point.longitude = latLonEle.value().Y();
+            msg.geo_point.altitude = latLonEle.value().Z();
+        } else {
+            // No spherical coordinates available: still publish the Cartesian
+            // pose, with the geo_point zeroed so downstream consumers can tell
+            // it is unset.
+            m_logger->warn(
+                "EntityManager::PostUpdate: Vessel: {} unable to find coordinate. Publishing pose with zeroed geo_point.",
+                vessel_map.second);
+            msg.geo_point.latitude = 0.0;
+            msg.geo_point.longitude = 0.0;
+            msg.geo_point.altitude = 0.0;
+        }
 
         array_msg.vessels.push_back(msg);
     }
