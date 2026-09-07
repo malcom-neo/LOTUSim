@@ -11,7 +11,25 @@
 
 namespace lotusim::gazebo {
 
-RenderPlugin::RenderPlugin() {}
+namespace {
+
+std::shared_ptr<RenderInterfaceBase> CreateRenderInterface(
+    const std::string& protocol,
+    const std::string& world_name,
+    std::shared_ptr<spdlog::logger> logger)
+{
+    if (protocol == "TCPUDP") {
+        return std::make_shared<TcpUdpInterface>(world_name, logger);
+    }
+    if (protocol == "ROS2") {
+        return std::make_shared<ROSInterface>(world_name, logger);
+    }
+    return nullptr;
+}
+
+}  // namespace
+
+RenderPlugin::RenderPlugin() = default;
 
 RenderPlugin::~RenderPlugin()
 {
@@ -144,7 +162,7 @@ void RenderPlugin::PostUpdate(
                 _ecm.Component<gz::sim::components::Pose>(entity.second)
                     ->Data();
 
-            vessel_pose.push_back({entity.first, pose});
+            vessel_pose.emplace_back(entity.first, pose);
         }
     }
     m_render_interface->sendPosition(_info.simTime, vessel_pose);

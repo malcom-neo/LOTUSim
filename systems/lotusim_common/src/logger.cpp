@@ -39,7 +39,7 @@ spdlog::level::level_enum getLogLevelFromEnv()
         return spdlog::level::off;
 
     std::cerr << "Invalid LOTUSIM_LOG_LEVEL: " << env_level
-              << ". Using default level." << std::endl;
+              << ". Using default level." << '\n';
     return DEFAULT_LOG_LEVEL;
 }
 

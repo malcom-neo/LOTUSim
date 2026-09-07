@@ -143,7 +143,7 @@ class WaypointFollowerPlugin : public gz::sim::System,
 public:
     WaypointFollowerPlugin();
 
-    ~WaypointFollowerPlugin();
+    ~WaypointFollowerPlugin() override;
 
     void Configure(
         const gz::sim::Entity& _entity,

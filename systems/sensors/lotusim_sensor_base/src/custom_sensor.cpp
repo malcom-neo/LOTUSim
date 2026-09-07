@@ -31,7 +31,7 @@ CustomSensor::CustomSensor(
     m_rnd_gen = std::default_random_engine(seed);
 }
 
-CustomSensor::~CustomSensor() {}
+CustomSensor::~CustomSensor() = default;
 
 bool CustomSensor::Load(const sdf::Sensor& _sdf)
 {

@@ -80,11 +80,11 @@ public:
 
     bool destroyVessel(const std::string& vessel_name) override;
 
-    virtual bool customPreUpdates(
+    bool customPreUpdates(
         const gz::sim::UpdateInfo& _info,
         gz::sim::EntityComponentManager& _ecm) override;
 
-    virtual bool customUpdates(
+    bool customUpdates(
         const gz::sim::UpdateInfo& _info,
         const gz::sim::EntityComponentManager& _ecm) override;
 

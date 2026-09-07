@@ -87,7 +87,7 @@ PlatformPowerManagerBase::PlatformPowerManagerBase(
 
 PlatformPowerManagerBase::~PlatformPowerManagerBase() = default;
 
-void PlatformPowerManagerBase::PostUpdate(float dt)
+void PlatformPowerManagerBase::PostUpdate(float /*dt*/)
 {
     updateActiveProvider();
     return;
@@ -280,7 +280,7 @@ void PlatformPowerManagerBase::publishPowerStatus()
 
     for (auto&& provider : m_providers) {
         msg.providers_name.push_back(provider->name());
-        msg.providers_type.push_back(std::string(toString(provider->type())));
+        msg.providers_type.emplace_back(toString(provider->type()));
         msg.providers_soc.push_back(provider->getStateOfCharge());
         msg.providers_voltage.push_back(provider->voltage());
         msg.active_provider = m_batteries[m_active_battery_index]->name();

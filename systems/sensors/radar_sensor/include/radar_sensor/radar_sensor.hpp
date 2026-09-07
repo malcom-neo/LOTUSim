@@ -102,7 +102,7 @@ public:
      * Subsequent calls process the slatest cached PointCloudPacked and publish
      * radar images.
      */
-    virtual bool UpdateSensor(
+    bool UpdateSensor(
         const gz::sim::UpdateInfo& _info,
         const gz::sim::EntityComponentManager& _ecm) override;
 

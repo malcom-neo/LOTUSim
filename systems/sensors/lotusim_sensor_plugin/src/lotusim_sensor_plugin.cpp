@@ -12,7 +12,7 @@
 
 namespace lotusim::sensor {
 
-LotusimSensorPlugin::LotusimSensorPlugin() {}
+LotusimSensorPlugin::LotusimSensorPlugin() = default;
 
 void LotusimSensorPlugin::Configure(
     const gz::sim::Entity&,

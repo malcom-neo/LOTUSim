@@ -25,7 +25,7 @@ ROSInterface::ROSInterface(
         "ros2_render_interface.txt");
 }
 
-ROSInterface::~ROSInterface() {}
+ROSInterface::~ROSInterface() = default;
 
 bool ROSInterface::configureInterface(
     const std::shared_ptr<const sdf::Element>&)

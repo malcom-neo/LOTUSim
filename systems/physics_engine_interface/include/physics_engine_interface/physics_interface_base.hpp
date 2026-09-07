@@ -130,8 +130,8 @@ public:
      * @return false
      */
     virtual bool removeInterface(
-        const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown)
+        const gz::sim::Entity& /*_entity*/,
+        const DomainType& /*domain_type*/ = DomainType::Unknown)
     {
         return true;
     };

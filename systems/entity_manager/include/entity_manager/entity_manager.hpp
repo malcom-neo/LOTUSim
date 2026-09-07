@@ -70,7 +70,7 @@ class EntityManager : public gz::sim::System,
 public:
     EntityManager();
 
-    ~EntityManager();
+    ~EntityManager() override;
 
     /**
      * @brief Inherited method from GZ.

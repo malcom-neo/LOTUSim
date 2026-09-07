@@ -30,7 +30,7 @@ IMUSensor::IMUSensor(
 {
 }
 
-IMUSensor::~IMUSensor() {}
+IMUSensor::~IMUSensor() = default;
 
 bool IMUSensor::CustomSensorLoad(const sdf::Sensor&)
 {

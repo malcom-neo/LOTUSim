@@ -135,7 +135,7 @@ bool XdynWebsocket::configureInterface(
 
 bool XdynWebsocket::removeInterface(
     const gz::sim::Entity& _entity,
-    const DomainType& domain_type)
+    const DomainType& /*domain_type*/)
 {
     deactivateInterface(_entity);
     if (m_models_cmd_map_ptr->find(_entity) != m_models_cmd_map_ptr->end()) {

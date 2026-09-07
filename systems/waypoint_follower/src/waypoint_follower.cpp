@@ -694,7 +694,7 @@ void WaypointFollowerPlugin::setupRosForModel(
                         m_origin_spherical.LocalFromSphericalPosition(
                             {geo_point.latitude, geo_point.longitude, 0});
 
-                    m_waypoints[entity].push_back({xyz.X(), xyz.Y()});
+                    m_waypoints[entity].emplace_back(xyz.X(), xyz.Y());
                 }
                 response->success = true;
             } catch (const std::exception& e) {
@@ -708,8 +708,8 @@ void WaypointFollowerPlugin::setupRosForModel(
         m_ros_node->create_service<std_srvs::srv::Empty>(
             model_name + "/stop",
             [this, entity](
-                const std::shared_ptr<std_srvs::srv::Empty::Request> request,
-                std::shared_ptr<std_srvs::srv::Empty::Response> response) {
+                const std::shared_ptr<std_srvs::srv::Empty::Request>,
+                std::shared_ptr<std_srvs::srv::Empty::Response>) {
                 stopVessel(entity);
             });
 

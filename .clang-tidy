@@ -1,8 +1,13 @@
 Checks: >
   -*,
-  clang-analyzer-*,
   bugprone-*,
-  -bugprone-easily-swappable-parameters
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  -bugprone-easily-swappable-parameters,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  -modernize-use-trailing-return-type
 WarningsAsErrors: ''
 HeaderFilterRegex: '(systems|interfaces|examples)/.*'
 ExcludeHeaderFilterRegex: '^/nix/store/.*'

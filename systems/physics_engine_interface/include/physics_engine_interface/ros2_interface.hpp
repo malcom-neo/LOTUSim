@@ -31,7 +31,7 @@ namespace lotusim::gazebo {
 class ROS2Interface : public PhysicsInterfaceBase {
 public:
     ROS2Interface();
-    ~ROS2Interface();
+    ~ROS2Interface() override;
 
     /**
      * @brief Static function to get static instance

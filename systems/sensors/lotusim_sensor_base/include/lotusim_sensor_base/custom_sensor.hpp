@@ -52,7 +52,7 @@ public:
         const std::string& sensor_name);
 
     /// \brief Class destructor
-    virtual ~CustomSensor();
+    ~CustomSensor() override;
 
     /// \brief Update callback from simulation.
     // virtual bool OnUpdate(const gz::sim::UpdateInfo &info) = 0;
@@ -66,7 +66,7 @@ public:
     bool IsOn();
 
     /// \brief Inherited function. Loading the sensor
-    virtual bool Load(const sdf::Sensor& _sdf) override;
+    bool Load(const sdf::Sensor& _sdf) override;
 
     virtual bool UpdateSensor(
         const gz::sim::UpdateInfo& _info,

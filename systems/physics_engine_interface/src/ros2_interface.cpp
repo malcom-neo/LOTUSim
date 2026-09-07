@@ -82,7 +82,7 @@ bool ROS2Interface::configureInterface(
 
 bool ROS2Interface::removeInterface(
     const gz::sim::Entity& _entity,
-    const DomainType& domain_type)
+    const DomainType& /*domain_type*/)
 {
     std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
     m_entity_name_map.erase(_entity);

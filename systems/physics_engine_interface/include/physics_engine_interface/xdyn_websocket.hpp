@@ -113,7 +113,7 @@ class XdynWebsocket : public PhysicsInterfaceBase {
 public:
     XdynWebsocket();
 
-    ~XdynWebsocket();
+    ~XdynWebsocket() override;
 
     void operator=(const XdynWebsocket&) = delete;
 
@@ -131,7 +131,7 @@ public:
         const gz::sim::Entity& entity,
         const std::string& model_name,
         const sdf::ElementPtr sdf,
-        const DomainType& domain_type = DomainType::Unknown) override final;
+        const DomainType& domain_type = DomainType::Unknown) final;
 
     /**
      * @brief Get the New State object using given vessel state
@@ -144,23 +144,23 @@ public:
     std::optional<std::tuple<VesselInformation, DomainType>> getNewState(
         const gz::sim::Entity& _entity,
         const VesselInformation& previous_state,
-        float time_diff) override final;
+        float time_diff) final;
 
     bool removeInterface(
         const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown) override final;
+        const DomainType& domain_type = DomainType::Unknown) final;
 
     bool activateInterface(
         const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown) override final;
+        const DomainType& domain_type = DomainType::Unknown) final;
 
     bool deactivateInterface(
         const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown) override final;
+        const DomainType& domain_type = DomainType::Unknown) final;
 
     std::string getURI(
         const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown) override final;
+        const DomainType& domain_type = DomainType::Unknown) final;
 
 protected:
     static std::shared_ptr<XdynWebsocket> m_instance;

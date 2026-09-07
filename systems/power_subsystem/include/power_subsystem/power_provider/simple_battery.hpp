@@ -44,7 +44,7 @@ public:
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger);
 
-    ~SimpleBattery() = default;
+    ~SimpleBattery() override = default;
 
     // ----------------------------------------------------------------
     // Battery interface

@@ -218,7 +218,7 @@ protected:
     PowerProvider(
         const std::string& provider_name,
         const std::string& vessel_name,
-        const sdf::ElementPtr& sdf,
+        const sdf::ElementPtr& /*sdf*/,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)
         : m_provider_name(std::move(provider_name))

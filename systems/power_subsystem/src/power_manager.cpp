@@ -64,7 +64,7 @@ void PowerManager::Configure(
 
 void PowerManager::PostUpdate(
     const gz::sim::UpdateInfo& _info,
-    const gz::sim::EntityComponentManager& _ecm)
+    const gz::sim::EntityComponentManager& /*_ecm*/)
 {
     const float dt =
         static_cast<float>(std::chrono::duration<double>(_info.dt).count());

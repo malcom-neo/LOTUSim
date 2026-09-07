@@ -33,15 +33,15 @@ public:
     ROSInterface(
         const std::string& world_name,
         std::shared_ptr<spdlog::logger> logger);
-    ~ROSInterface();
+    ~ROSInterface() override;
 
     bool configureInterface(
-        const std::shared_ptr<const sdf::Element>& _sdf) override final;
+        const std::shared_ptr<const sdf::Element>& _sdf) final;
 
     bool sendPosition(
         const std::chrono::steady_clock::duration& runTime,
         const std::vector<std::pair<std::string, gz::math::Pose3d>>& poses)
-        override final;
+        final;
 
     /**
      * @brief Method to create new vessel
@@ -55,17 +55,17 @@ public:
     bool createVessel(
         const std::string& vessel_name,
         const gz::math::Pose3d& pose,
-        sdf::ElementPtr sdfptr) override final;
+        sdf::ElementPtr sdfptr) final;
 
-    bool destroyVessel(const std::string& vessel_name) override final;
+    bool destroyVessel(const std::string& vessel_name) final;
 
-    virtual bool customPreUpdates(
+    bool customPreUpdates(
         const gz::sim::UpdateInfo& _info,
-        gz::sim::EntityComponentManager& _ecm) override final;
+        gz::sim::EntityComponentManager& _ecm) final;
 
-    virtual bool customUpdates(
+    bool customUpdates(
         const gz::sim::UpdateInfo& _info,
-        const gz::sim::EntityComponentManager& _ecm) override final;
+        const gz::sim::EntityComponentManager& _ecm) final;
 
 private:
     void sendCreateMessage(

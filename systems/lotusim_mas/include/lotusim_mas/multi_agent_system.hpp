@@ -56,7 +56,7 @@ class MultiAgentSystem : public gz::sim::System,
 public:
     MultiAgentSystem();
 
-    ~MultiAgentSystem();
+    ~MultiAgentSystem() override;
 
     void shutdown();
 

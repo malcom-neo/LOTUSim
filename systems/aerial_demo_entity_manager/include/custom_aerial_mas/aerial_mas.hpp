@@ -20,17 +20,15 @@ using ClientGoalHandleMASCmd =
 class AerialMAS : public MultiAgentSystem {
 public:
     AerialMAS();
-    ~AerialMAS();
+    ~AerialMAS() override;
 
 private:
     void customUserConfiguration(
         const std::shared_ptr<const sdf::Element>& _sdf) override;
 
-    void customUserAddEntity(
-        const lotusim_msgs::msg::MASCmd& msg) override final;
+    void customUserAddEntity(const lotusim_msgs::msg::MASCmd& msg) final;
 
-    void customUserDeleteEntity(
-        const lotusim_msgs::msg::MASCmd& msg) override final;
+    void customUserDeleteEntity(const lotusim_msgs::msg::MASCmd& msg) final;
 
     void resultCB(const ClientGoalHandleMASCmd::WrappedResult& result);
 

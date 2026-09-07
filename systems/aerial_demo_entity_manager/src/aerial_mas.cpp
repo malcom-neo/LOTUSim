@@ -13,7 +13,7 @@ namespace lotusim::gazebo {
 
 AerialMAS::AerialMAS() : MultiAgentSystem() {}
 
-AerialMAS::~AerialMAS() {}
+AerialMAS::~AerialMAS() = default;
 
 void AerialMAS::customUserConfiguration(
     const std::shared_ptr<const sdf::Element>& _sdf)

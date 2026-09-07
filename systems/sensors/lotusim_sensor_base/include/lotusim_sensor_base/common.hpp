@@ -53,7 +53,7 @@ bool GetSDFParam(
         if (verbose)
             gzerr << "[sensor_plugins] Please specify a value for "
                      "parameter \""
-                  << name << "\"." << std::endl;
+                  << name << "\"." << '\n';
     }
     return false;
 }
@@ -106,7 +106,7 @@ public:
         previousState_ = outputState;
         return outputState;
     }
-    ~FirstOrderFilter() {}
+    ~FirstOrderFilter() = default;
 
 protected:
     double timeConstantUp_;

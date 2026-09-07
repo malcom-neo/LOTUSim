@@ -99,19 +99,19 @@ private:
 
         if (nullptr == sensor) {
             gzerr << "Failed to create sensor [" << _sdf.Name() << "] of type["
-                  << _sdf.TypeStr() << "]" << std::endl;
+                  << _sdf.TypeStr() << "]" << '\n';
             return nullptr;
         }
 
         if (!sensor->Load(_sdf)) {
             gzerr << "Failed to load sensor [" << _sdf.Name() << "] of type["
-                  << _sdf.TypeStr() << "]" << std::endl;
+                  << _sdf.TypeStr() << "]" << '\n';
             return nullptr;
         }
 
         if (!sensor->Init()) {
             gzerr << "Failed to initialize sensor [" << _sdf.Name()
-                  << "] of type[" << _sdf.TypeStr() << "]" << std::endl;
+                  << "] of type[" << _sdf.TypeStr() << "]" << '\n';
             return nullptr;
         }
 

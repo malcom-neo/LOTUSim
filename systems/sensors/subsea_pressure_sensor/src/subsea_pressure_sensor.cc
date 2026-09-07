@@ -28,7 +28,7 @@ SubseaPressureSensor::SubseaPressureSensor(
 {
 }
 
-SubseaPressureSensor::~SubseaPressureSensor() {}
+SubseaPressureSensor::~SubseaPressureSensor() = default;
 
 bool SubseaPressureSensor::CustomSensorLoad(const sdf::Sensor& _sdf)
 {
