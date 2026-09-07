@@ -40,8 +40,11 @@ public:
      * @return std::shared_ptr<ROS2Interface>
      */
     static std::shared_ptr<ROS2Interface> createInterface();
-    
-    static void resetInstance() { m_instance.reset(); }
+
+    static void resetInstance()
+    {
+        m_instance.reset();
+    }
 
     std::optional<std::tuple<VesselInformation, DomainType>> getNewState(
         const gz::sim::Entity& _entity,

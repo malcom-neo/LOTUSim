@@ -66,10 +66,15 @@ std::optional<std::tuple<uint16_t, std::string>> EntitySpawner::addEntity(
 
             // Use the provided sdf_file inside the model folder.
             // If empty, default to "model.sdf".
-            std::string sdf_filename = msg.sdf_file.empty() ? "model.sdf" : msg.sdf_file;
-            m_logger->info("EntitySpawner::addEntity: using sdf_file='{}' for model='{}'", sdf_filename, msg.model_name);
+            std::string sdf_filename =
+                msg.sdf_file.empty() ? "model.sdf" : msg.sdf_file;
+            m_logger->info(
+                "EntitySpawner::addEntity: using sdf_file='{}' for model='{}'",
+                sdf_filename,
+                msg.model_name);
             const std::string file_path_sdf = (file_path + "/" + sdf_filename);
-            if (sdf_doc.LoadFile(file_path_sdf.c_str()) != tinyxml2::XML_SUCCESS) {
+            if (sdf_doc.LoadFile(file_path_sdf.c_str()) !=
+                tinyxml2::XML_SUCCESS) {
                 m_logger->error(
                     "EntitySpawner::addEntity: Failed to load SDF file '{}'",
                     file_path_sdf);
@@ -104,8 +109,9 @@ std::optional<std::tuple<uint16_t, std::string>> EntitySpawner::addEntity(
                 return std::nullopt;
             }
 
-            model_elem->InsertEndChild(static_cast<tinyxml2::XMLElement*>(
-                lotus_elem->DeepClone(&sdf_doc)));
+            model_elem->InsertEndChild(
+                static_cast<tinyxml2::XMLElement*>(
+                    lotus_elem->DeepClone(&sdf_doc)));
 
             tinyxml2::XMLPrinter printer;
             sdf_doc.Print(&printer);

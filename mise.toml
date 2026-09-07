@@ -166,6 +166,28 @@ fi
 run-clang-tidy -p build "systems/" "interfaces/" "examples/"
 '''
 
+[tasks."lint:format"]
+description = "Check (or apply) clang-format over the workspace sources"
+dir = "{{config_root}}"
+shell = "bash -c"
+usage = 'flag "--fix" help="Rewrite files in place instead of only reporting"'
+run = '''
+set -euo pipefail
+mapfile -t sources < <(
+  find systems interfaces examples \
+    -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.hh' \)
+)
+if [ -z "${sources[*]}" ]; then
+  echo "No C++ sources found under systems/, interfaces/ or examples/." >&2
+  exit 1
+fi
+if [ "${usage_fix:-false}" = "true" ]; then
+  clang-format -i "${sources[@]}"
+else
+  clang-format --dry-run --Werror "${sources[@]}"
+fi
+'''
+
 [tasks.doc]
 description = "Generate the doxygen documentation"
 dir = "{{config_root}}/docs"
