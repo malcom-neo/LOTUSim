@@ -29,8 +29,8 @@ public:
         rclcpp::Node::SharedPtr node,
         const gz::sim::Entity& vessel_entity,
         const gz::sim::Entity& sensor_entity,
-        const std::string& parent_name,
-        const std::string& sensor_name);
+        std::string parent_name,
+        std::string sensor_name);
 
     ~AISSensor() override;
 

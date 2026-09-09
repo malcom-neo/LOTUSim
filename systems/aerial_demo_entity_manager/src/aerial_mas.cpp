@@ -81,7 +81,8 @@ void AerialMAS::customUserDeleteEntity(const lotusim_msgs::msg::MASCmd& msg)
     m_aerial_mas_client->async_send_goal(aerial_goal_msg, send_goal_options);
 }
 
-void AerialMAS::goalResponseCB(ClientGoalHandleMASCmd::SharedPtr goal_handle)
+void AerialMAS::goalResponseCB(
+    const ClientGoalHandleMASCmd::SharedPtr& goal_handle)
 {
     if (!goal_handle) {
         m_logger->error(

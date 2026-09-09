@@ -45,8 +45,8 @@ public:
      * @param node   from PowerManager
      */
     SimpleGenerator(
-        const std::string& generator_name,
-        const std::string& vessel_name,
+        std::string generator_name,
+        std::string vessel_name,
         const sdf::ElementPtr& _sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger);

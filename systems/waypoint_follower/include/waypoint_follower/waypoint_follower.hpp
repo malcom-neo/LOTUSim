@@ -167,7 +167,7 @@ private:
      */
     bool load(
         const gz::sim::Entity& _entity,
-        sdf::ElementPtr _lotus_param,
+        const sdf::ElementPtr& _lotus_param,
         gz::sim::EntityComponentManager& _ecm);
 
     // Sets up ROS subscriptions and publishers for a given model/entity

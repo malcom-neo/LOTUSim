@@ -10,6 +10,8 @@
 
 #include "ais_sensor/ais_sensor.hpp"
 
+#include <utility>
+
 namespace lotusim::sensor {
 
 AISSensor::AISSensor(
@@ -17,15 +19,15 @@ AISSensor::AISSensor(
     rclcpp::Node::SharedPtr node,
     const gz::sim::Entity& vessel_entity,
     const gz::sim::Entity& sensor_entity,
-    const std::string& parent_name,
-    const std::string& sensor_name)
+    std::string parent_name,
+    std::string sensor_name)
     : CustomSensor(
-          logger,
-          node,
+          std::move(logger),
+          std::move(node),
           vessel_entity,
           sensor_entity,
-          parent_name,
-          sensor_name)
+          std::move(parent_name),
+          std::move(sensor_name))
     , m_update_period(std::chrono::seconds(2))
     , m_last_pub(std::chrono::seconds(0))
     , m_base_link(gz::sim::kNullEntity)
@@ -77,10 +79,10 @@ bool AISSensor::UpdateSensor(
         _ecm.Component<gz::sim::components::WorldLinearVelocity>(m_base_link);
 
     if (vel_opt) {
-        double vel = std::sqrt(
+        const double vel = std::sqrt(
             std::pow(vel_opt->Data()[0], 2) + std::pow(vel_opt->Data()[1], 2));
 
-        double angleRadians = atan2(
+        const double angleRadians = atan2(
             vel_opt->Data()[0],
             vel_opt->Data()[1]);  // x is East, y is North
 

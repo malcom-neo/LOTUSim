@@ -16,6 +16,7 @@
 #include <gz/sim/components/Name.hh>
 #include <gz/sim/components/ParentEntity.hh>
 #include <gz/sim/components/Sensor.hh>
+#include <utility>
 
 // abstract classes
 #include "power_subsystem/power_consumer/power_consumer.hpp"
@@ -37,18 +38,18 @@ namespace lotusim::gazebo {
 
 PlatformPowerManagerBase::PlatformPowerManagerBase(
     const gz::sim::Entity& vessel_entity,
-    const std::string& vessel_name,
+    std::string vessel_name,
     rclcpp::Node::SharedPtr node,
     sdf::ElementPtr sdfptr)
     : m_vessel_entity(vessel_entity)
-    , m_vessel_name(vessel_name)
+    , m_vessel_name(std::move(vessel_name))
     , m_node(std::move(node))
 {
     const std::string loggerName = m_vessel_name + "_power";
     m_logger =
         logger::createConsoleAndFileLogger(loggerName, loggerName + ".txt");
 
-    sdf::ElementPtr rootEl = sdfptr->GetIncludeElement();
+    const sdf::ElementPtr rootEl = sdfptr->GetIncludeElement();
     if (rootEl) {
         sdfptr = rootEl;
     }
@@ -120,7 +121,7 @@ float PlatformPowerManagerBase::activeBusVoltage() const
     return 1.0f;  // no source available
 }
 
-bool PlatformPowerManagerBase::initPowerProvider(sdf::ElementPtr sdfptr)
+bool PlatformPowerManagerBase::initPowerProvider(const sdf::ElementPtr& sdfptr)
 {
     if (!sdfptr) {
         m_logger->error(
@@ -174,7 +175,7 @@ bool PlatformPowerManagerBase::initPowerProvider(sdf::ElementPtr sdfptr)
     return true;
 }
 
-bool PlatformPowerManagerBase::initPowerConsumers(sdf::ElementPtr sdfptr)
+bool PlatformPowerManagerBase::initPowerConsumers(const sdf::ElementPtr& sdfptr)
 {
     m_consumers.clear();
 
@@ -189,49 +190,46 @@ bool PlatformPowerManagerBase::initPowerConsumers(sdf::ElementPtr sdfptr)
     // When a <lotusim_power> node is found, dispatch to the appropriate
     // consumer factory using the parent element for context, then stop
     // descending that branch.
-    std::function<void(sdf::ElementPtr, sdf::ElementPtr)> dfs = [&](sdf::
-                                                                        ElementPtr
-                                                                            el,
-                                                                    sdf::ElementPtr
-                                                                        parent) {
-        if (!el)
-            return;
-
-        if (el->GetName() == "lotusim_power") {
-            if (!parent)
+    std::function<void(sdf::ElementPtr, sdf::ElementPtr)> dfs =
+        [&](const sdf::ElementPtr& el, const sdf::ElementPtr& parent) {
+            if (!el)
                 return;
 
-            const std::string parentName = parent->GetName();
-            if (parentName == "model")
-                return;  // skip -> this is a provider definition
+            if (el->GetName() == "lotusim_power") {
+                if (!parent)
+                    return;
 
-            const std::string consumerName =
-                parent->GetAttribute("name")
-                    ? parent->GetAttribute("name")->GetAsString()
-                    : "";
-            auto [consumer, type] = PowerConsumer::createFromSdf(
-                consumerName,
-                m_vessel_name,
-                parent,
-                m_node,
-                m_logger);
-            if (consumer) {
-                m_consumers.push_back(consumer);
-            } else {
-                m_logger->warn(
-                    "PlatformPowerManagerBase [{}]: failed to create consumer [{}], skipping",
+                const std::string parentName = parent->GetName();
+                if (parentName == "model")
+                    return;  // skip -> this is a provider definition
+
+                const std::string consumerName =
+                    parent->GetAttribute("name")
+                        ? parent->GetAttribute("name")->GetAsString()
+                        : "";
+                auto [consumer, type] = PowerConsumer::createFromSdf(
+                    consumerName,
                     m_vessel_name,
-                    consumerName);
+                    parent,
+                    m_node,
+                    m_logger);
+                if (consumer) {
+                    m_consumers.push_back(consumer);
+                } else {
+                    m_logger->warn(
+                        "PlatformPowerManagerBase [{}]: failed to create consumer [{}], skipping",
+                        m_vessel_name,
+                        consumerName);
+                }
+                return;  // do not recurse into <lotusim_power>
             }
-            return;  // do not recurse into <lotusim_power>
-        }
 
-        auto child = el->GetFirstElement();
-        while (child) {
-            dfs(child, el);
-            child = child->GetNextElement();
-        }
-    };
+            auto child = el->GetFirstElement();
+            while (child) {
+                dfs(child, el);
+                child = child->GetNextElement();
+            }
+        };
 
     dfs(sdfptr, nullptr);
 
@@ -252,7 +250,7 @@ bool PlatformPowerManagerBase::updateActiveProvider()
             : m_active_battery_index;  // at the start when init at -1
     // find the next non-depleted provider
     // preserves the priority order
-    for (int i = startIndex; i < static_cast<int>(m_batteries.size()); ++i) {
+    for (int i = startIndex; std::cmp_less(i, m_batteries.size()); ++i) {
         if (!m_batteries[i]->isDepleted()) {
             if (i != m_active_battery_index) {
                 if (m_active_battery_index >= 0) {

@@ -24,10 +24,10 @@ static constexpr double SPAWN_LATITUDE = 1.2605794416293148;
 static constexpr double SPAWN_LONGITUDE = 103.7516212463379;
 static constexpr double SPAWN_ALTITUDE = 0.0;
 static constexpr double OFFSET = 0.0001;
-int vessel_id = 0;
+static int vessel_id = 0;
 
 template <typename T>
-T random_choice(const std::vector<T>& vec)
+static T random_choice(const std::vector<T>& vec)
 {
     static std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<> dist(0, vec.size() - 1);
@@ -49,7 +49,7 @@ public:
         pose_subscription_ = this->create_subscription<VesselPositionArray>(
             "poses",
             rclcpp::QoS(10),
-            [this](const VesselPositionArray::SharedPtr msg) {
+            [this](const VesselPositionArray::ConstSharedPtr& msg) {
                 this->poses_callback(msg);
             });
 
@@ -155,7 +155,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "lrauv";
-        std::string name = "lrauv_" + std::to_string(vessel_id);
+        const std::string name = "lrauv_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -211,7 +211,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "x500";
-        std::string name = "x500_" + std::to_string(vessel_id);
+        const std::string name = "x500_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -257,7 +257,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "dtmb_hull";
-        std::string name = "dtmb_" + std::to_string(vessel_id);
+        const std::string name = "dtmb_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -306,7 +306,7 @@ public:
             lotusim_msgs::msg::MASCmd msg;
             msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
             msg.model_name = "dtmb_hull";
-            std::string name = "dtmb_" + std::to_string(vessel_id);
+            const std::string name = "dtmb_" + std::to_string(vessel_id);
             msg.vessel_name = name;
             spawned_vessels_.push_back(name);
 
@@ -341,7 +341,7 @@ public:
         auto send_goal_options =
             rclcpp_action::Client<MASCmdArray>::SendGoalOptions();
         send_goal_options.goal_response_callback =
-            [](GoalHandleMASCmdArray::SharedPtr goal_handle) {
+            [](const GoalHandleMASCmdArray::SharedPtr& goal_handle) {
                 if (!goal_handle) {
                     RCLCPP_ERROR(
                         rclcpp::get_logger("rclcpp"),
@@ -389,7 +389,7 @@ public:
             mas_array_action_client_->async_send_goal(goal_msg);
         exec.spin_until_future_complete(goal_handle_future);
 
-        auto goal_handle = goal_handle_future.get();
+        const auto& goal_handle = goal_handle_future.get();
         if (!goal_handle) {
             RCLCPP_ERROR(this->get_logger(), "Delete goal rejected");
             return;
@@ -405,7 +405,7 @@ public:
 
 private:
     void poses_callback(
-        const lotusim_msgs::msg::VesselPositionArray::SharedPtr msg)
+        const lotusim_msgs::msg::VesselPositionArray::ConstSharedPtr& msg)
     {
         for (const auto& vessel : msg->vessels) {
             vessel_poses_[vessel.vessel_name] = std::make_pair(

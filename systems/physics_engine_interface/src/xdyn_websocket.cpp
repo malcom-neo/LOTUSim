@@ -9,6 +9,8 @@
  */
 #include "physics_engine_interface/xdyn_websocket.hpp"
 
+#include <utility>
+
 namespace lotusim::gazebo {
 
 // Convert a quaternion from the NED frame to the ENU frame by conjugating it
@@ -81,7 +83,7 @@ XdynWebsocket::~XdynWebsocket()
 
 std::shared_ptr<XdynWebsocket> XdynWebsocket::createInterface()
 {
-    std::scoped_lock lock(m_instance_mutex);
+    const std::scoped_lock lock(m_instance_mutex);
     if (m_instance == nullptr) {
         m_instance = std::make_shared<XdynWebsocket>();
     }
@@ -94,7 +96,7 @@ bool XdynWebsocket::configureInterface(
     const sdf::ElementPtr _sdf,
     const DomainType& domain_type)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
 
     if (domain_type == DomainType::Unknown) {
         m_logger->error(
@@ -121,7 +123,8 @@ bool XdynWebsocket::configureInterface(
         auto sdfPtr_thruster = _sdf->GetElement("thrusters")->GetFirstElement();
         auto thrusters_cmd = json::object();
         do {
-            std::string thruster_name = sdfPtr_thruster->Get<std::string>();
+            const std::string thruster_name =
+                sdfPtr_thruster->Get<std::string>();
             thrusters_cmd[thruster_name + "(rpm)"] =
                 50.0;  // was 2.0 but crashes the Wageningen propeller
             thrusters_cmd[thruster_name + "(P/D)"] = 0.79;
@@ -177,7 +180,7 @@ bool XdynWebsocket::activateInterface(
         }
 
         websocketpp::lib::error_code ec;
-        Client::connection_ptr con =
+        const Client::connection_ptr con =
             m_client.get_connection(m_uri[_entity][domain_type], ec);
         if (ec) {
             m_logger->info(
@@ -186,7 +189,7 @@ bool XdynWebsocket::activateInterface(
             return false;
         }
         {
-            std::unique_lock<std::mutex> lock(m_variable_mutex);
+            const std::unique_lock<std::mutex> lock(m_variable_mutex);
             m_connection_mapping.insert({_entity, con});
             m_connection_entity_mapping.insert({con, _entity});
             m_status.insert({_entity, "configuring"});
@@ -245,7 +248,7 @@ bool XdynWebsocket::deactivateInterface(
     const gz::sim::Entity& _entity,
     const DomainType& domain_type)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
     websocketpp::lib::error_code ec;
     m_logger->info(
         "XdynWebsocket::deactivateInterface: Deactivating connection for entity {}",
@@ -275,7 +278,7 @@ std::string XdynWebsocket::getURI(
     const gz::sim::Entity& _entity,
     const DomainType& domain_type)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
     if (m_uri.find(_entity) != m_uri.end() &&
         m_uri[_entity].find(domain_type) != m_uri[_entity].end()) {
         return m_uri[_entity][domain_type];
@@ -288,8 +291,8 @@ void XdynWebsocket::onOpen(
     const gz::sim::Entity& _entity,
     websocketpp::connection_hdl hdl)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
-    auto uri = m_client.get_con_from_hdl(hdl)->get_uri()->str();
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
+    auto uri = m_client.get_con_from_hdl(std::move(hdl))->get_uri()->str();
     m_status[_entity] = "opened";
     m_logger->info("XdynWebsocket::onOpen: Opened {}", uri);
 }
@@ -298,19 +301,19 @@ void XdynWebsocket::onFail(
     const gz::sim::Entity& _entity,
     websocketpp::connection_hdl hdl)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
-    auto uri = m_client.get_con_from_hdl(hdl)->get_uri()->str();
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
+    auto uri = m_client.get_con_from_hdl(std::move(hdl))->get_uri()->str();
     m_status[_entity] = "failed";
     m_logger->info("XdynWebsocket::onFail: Failed {}", uri);
 }
 
 void XdynWebsocket::onMessage(
     websocketpp::connection_hdl hdl,
-    websocketpp::config::asio_client::message_type::ptr msg)
+    const websocketpp::config::asio_client::message_type::ptr& msg)
 {
-    gz::sim::Entity entity =
-        m_connection_entity_mapping[m_client.get_con_from_hdl(hdl)];
-    std::unique_lock<std::mutex> lock(m_msg_mutex[entity]);
+    const gz::sim::Entity entity =
+        m_connection_entity_mapping[m_client.get_con_from_hdl(std::move(hdl))];
+    const std::unique_lock<std::mutex> lock(m_msg_mutex[entity]);
     json reply = json::parse(msg->get_payload());
 
     auto ned_position = gz::math::Vector3d(
@@ -347,7 +350,7 @@ void XdynWebsocket::onMessage(
     new_state.lin_vel = gz_lin_vel;
     new_state.ang_vel = gz_angular_vel;
 
-    m_saved_state[entity] = std::move(new_state);
+    m_saved_state[entity] = new_state;
     m_msg_cv[entity].notify_one();
 }
 
@@ -365,7 +368,7 @@ XdynWebsocket::getNewState(
     json data = json::object();
     data["Dt"] = time_diff / 1000.0;
     data["states"] = json::array();
-    json previous_state_json = {
+    const json previous_state_json = {
         {"t", time_diff},
         {"x", ned_position.X()},
         {"y", ned_position.Y()},
@@ -387,10 +390,10 @@ XdynWebsocket::getNewState(
     }
 
     data["requested_output"] = json::array();
-    std::string msg_string = data.dump();
+    const std::string msg_string = data.dump();
 
     if (send(_entity, msg_string)) {
-        double z = data["states"].back()["z"].get<double>() * (-1);
+        const double z = data["states"].back()["z"].get<double>() * (-1);
         // Currently, xdyn assumes hydrodynamics as layers
         if (z >= 10.0) {
             return std::make_tuple(m_saved_state[_entity], DomainType::Aerial);
@@ -409,7 +412,7 @@ bool XdynWebsocket::send(
     const gz::sim::Entity& _entity,
     const std::string& message)
 {
-    std::unique_lock<std::mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::mutex> lock(m_variable_mutex);
     // Guard to help with setup time
     auto conn_ptr = m_connection_mapping[_entity];
     if (!conn_ptr) {

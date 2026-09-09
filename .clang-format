@@ -6,6 +6,8 @@ Standard: Cpp11
 IndentWidth: 4
 ObjCBlockIndentWidth: 4
 
+QualifierAlignment: Left
+
 AllowAllParametersOfDeclarationOnNextLine: false
 AlignAfterOpenBracket: AlwaysBreak
 BinPackParameters: false

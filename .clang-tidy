@@ -3,10 +3,14 @@ Checks: >
   bugprone-*,
   clang-analyzer-*,
   misc-*,
+  modernize-*,
   performance-*,
   -bugprone-easily-swappable-parameters,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
+  -modernize-use-auto,
+  -modernize-avoid-bind,
+  -modernize-use-nodiscard,
   -modernize-use-trailing-return-type
 WarningsAsErrors: ''
 HeaderFilterRegex: '(systems|interfaces|examples)/.*'

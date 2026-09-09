@@ -25,10 +25,10 @@ static std::atomic<bool> g_shutdown_requested{false};  // global flag
 static constexpr double SPAWN_LATITUDE = 1.2605794416293148;
 static constexpr double SPAWN_LONGITUDE = 103.7516212463379;
 static constexpr double SPAWN_ALTITUDE = -30.0;
-int vessel_id = 0;
+static int vessel_id = 0;
 
 template <typename T>
-T random_choice(const std::vector<T>& vec)
+static T random_choice(const std::vector<T>& vec)
 {
     static std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<> dist(0, vec.size() - 1);
@@ -88,12 +88,12 @@ public:
 
             msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
             msg.model_name = "lrauv";
-            std::string name = "lrauv_" + std::to_string(vessel_id);
+            const std::string name = "lrauv_" + std::to_string(vessel_id);
             msg.vessel_name = name;
             vessel_names_.push_back(name);  // store for control
 
             geographic_msgs::msg::GeoPoint geo;
-            double offset = 0.0001;
+            const double offset = 0.0001;
 
             geo.latitude = SPAWN_LATITUDE +
                            vessel_id * offset * random_choice<int>({-1, 1});
@@ -170,7 +170,7 @@ public:
             mas_array_action_client_->async_send_goal(goal_msg);
         exec.spin_until_future_complete(goal_handle_future);
 
-        auto goal_handle = goal_handle_future.get();
+        const auto& goal_handle = goal_handle_future.get();
         if (!goal_handle) {
             RCLCPP_ERROR(this->get_logger(), "Delete goal rejected");
             return;
@@ -185,7 +185,7 @@ public:
     }
 
 private:
-    void poses_callback(const VesselPositionArray::SharedPtr msg)
+    void poses_callback(const VesselPositionArray::ConstSharedPtr& msg)
     {
         for (const auto& vessel : msg->vessels) {
             vessel_poses_[vessel.vessel_name] = std::make_pair(

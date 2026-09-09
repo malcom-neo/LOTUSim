@@ -39,11 +39,11 @@ namespace lotusim::sensor {
  */
 template <class T>
 bool GetSDFParam(
-    sdf::ElementPtr sdf,
+    const sdf::ElementPtr& sdf,
     const std::string& name,
     T& param,
     const T& default_value,
-    const bool& verbose = false)
+    bool verbose = false)
 {
     if (sdf->HasElement(name)) {
         param = sdf->GetElement(name)->Get<T>();
@@ -119,7 +119,7 @@ template <class Derived>
 Eigen::Quaternion<typename Derived::Scalar> QuaternionFromSmallAngle(
     const Eigen::MatrixBase<Derived>& theta)
 {
-    typedef typename Derived::Scalar Scalar;
+    using Scalar = typename Derived::Scalar;
     EIGEN_STATIC_ASSERT_FIXED_SIZE(Derived);
     EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived, 3);
     const Scalar q_squared = theta.squaredNorm() / 4.0;

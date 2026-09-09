@@ -79,8 +79,8 @@ private:
      * Spawns all agents defined in the scenario.
      */
     void handleLaunch(
-        const std::shared_ptr<lotusim_msgs::srv::String::Request> request,
-        std::shared_ptr<lotusim_msgs::srv::String::Response> response);
+        const std::shared_ptr<lotusim_msgs::srv::String::Request>& request,
+        const std::shared_ptr<lotusim_msgs::srv::String::Response>& response);
 
     /**
      * @brief Handler for `stop_scenario` service.
@@ -88,8 +88,8 @@ private:
      * Despawns all agents that were created by the active scenario.
      */
     void handleStop(
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+        const std::shared_ptr<std_srvs::srv::Trigger::Request>& request,
+        const std::shared_ptr<std_srvs::srv::Trigger::Response>& response);
 
     /**
      * @brief Spawns every agent in cfg using m_spawner->

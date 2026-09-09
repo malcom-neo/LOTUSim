@@ -15,9 +15,9 @@ namespace lotusim::gazebo {
 // commands
 
 ROSInterface::ROSInterface(
-    const std::string& world_name,
+    std::string world_name,
     std::shared_ptr<spdlog::logger> logger)
-    : RenderInterfaceBase(world_name, std::move(logger))
+    : RenderInterfaceBase(std::move(world_name), std::move(logger))
 {
     m_ros_node = rclcpp::Node::make_shared("render_interface", m_world_name);
     m_logger = logger::createConsoleAndFileLogger(

@@ -54,7 +54,7 @@ bool ROS2Interface::configureInterface(
     const sdf::ElementPtr _sdf,
     const DomainType& /*domain_type*/)
 {
-    std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
 
     std::string _namespace;
     if (_sdf->HasElement("namespace")) {
@@ -84,7 +84,7 @@ bool ROS2Interface::removeInterface(
     const gz::sim::Entity& _entity,
     const DomainType& /*domain_type*/)
 {
-    std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
     m_entity_name_map.erase(_entity);
     return true;
 }
@@ -103,7 +103,7 @@ ROS2Interface::getNewState(
     const VesselInformation& previous_state,
     float time_dif)
 {
-    std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
     auto name_it = m_entity_name_map.find(_entity);
     if (name_it == m_entity_name_map.end()) {
         return std::nullopt;

@@ -10,24 +10,26 @@
 
 #include "lotusim_sensor_base/custom_sensor.hpp"
 
+#include <utility>
+
 namespace lotusim::sensor {
 CustomSensor::CustomSensor(
     std::shared_ptr<spdlog::logger> logger,
     rclcpp::Node::SharedPtr node,
     const gz::sim::Entity& vessel_entity,
     const gz::sim::Entity& sensor_entity,
-    const std::string& parent_name,
-    const std::string& sensor_name)
-    : m_logger(logger)
+    std::string parent_name,
+    std::string sensor_name)
+    : m_logger(std::move(logger))
     , m_vessel_entity(vessel_entity)
     , m_sensor_entity(sensor_entity)
-    , m_vessel_name(parent_name)
-    , m_sensor_name(sensor_name)
+    , m_vessel_name(std::move(parent_name))
+    , m_sensor_name(std::move(sensor_name))
     , m_last_measurement_time(std::chrono::seconds(0))
-    , m_is_on(true)
-    , m_ros_node(node)
+    , m_ros_node(std::move(node))
 {
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    const unsigned seed =
+        std::chrono::system_clock::now().time_since_epoch().count();
     m_rnd_gen = std::default_random_engine(seed);
 }
 
@@ -41,7 +43,7 @@ bool CustomSensor::Load(const sdf::Sensor& _sdf)
 
     m_type = gz::sensors::customType(_sdf);
 
-    sdf::ElementPtr _sdfptr = _sdf.Element();
+    const sdf::ElementPtr _sdfptr = _sdf.Element();
 
     bool isSensorOn;
     GetSDFParam<int>(_sdfptr, "update_rate", m_update_rate, 1);
@@ -72,16 +74,17 @@ bool CustomSensor::Load(const sdf::Sensor& _sdf)
 }
 
 bool CustomSensor::ChangeSensorState(
-    const std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Request>
+    const std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Request>&
         _req,
-    std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Response> _res)
+    const std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Response>&
+        _res)
 {
     m_is_on = _req->activate;
     _res->success = true;
     return true;
 }
 
-double CustomSensor::GetGaussianNoise(std::string _name, double _amp)
+double CustomSensor::GetGaussianNoise(const std::string& _name, double _amp)
 {
     if (m_noise_models.count(_name)) {
         m_logger->warn("Gaussian noise model does not exist");
@@ -95,7 +98,7 @@ double CustomSensor::GetGaussianNoise(double _amp)
     return _amp * m_noise_models["default"](m_rnd_gen);
 }
 
-bool CustomSensor::AddNoiseModel(std::string _name, double _sigma)
+bool CustomSensor::AddNoiseModel(const std::string& _name, double _sigma)
 {
     if (m_noise_models.count(_name))
         return false;
@@ -134,7 +137,7 @@ void CustomSensor::Orientation(const gz::math::Quaterniond& _quad)
 bool CustomSensor::EnableMeasurement(
     const std::chrono::steady_clock::duration& _now) const
 {
-    double dt =
+    const double dt =
         std::chrono::duration<double>(_now - m_last_measurement_time).count();
     return dt >= 1.0 / m_update_rate && m_is_on;
 }

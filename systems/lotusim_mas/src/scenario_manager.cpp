@@ -9,6 +9,8 @@
  */
 #include "lotusim_mas/scenario_manager.hpp"
 
+#include <utility>
+
 #include "lotusim_common/common.hpp"
 
 namespace lotusim::scenario {
@@ -20,7 +22,7 @@ ScenarioManager::ScenarioManager(
     gz::sim::EntityComponentManager* ecm)
     : m_logger{std::move(logger)}
     , m_ros_node{std::move(node)}
-    , m_spawner{spawner}
+    , m_spawner{std::move(spawner)}
     , m_ecm{ecm}
 {
     m_callback_group.push_back(m_ros_node->create_callback_group(
@@ -51,8 +53,8 @@ ScenarioManager::ScenarioManager(
 }
 
 void ScenarioManager::handleLaunch(
-    const std::shared_ptr<lotusim_msgs::srv::String::Request> request,
-    std::shared_ptr<lotusim_msgs::srv::String::Response> response)
+    const std::shared_ptr<lotusim_msgs::srv::String::Request>& request,
+    const std::shared_ptr<lotusim_msgs::srv::String::Response>& response)
 {
     const char* scenario_env = std::getenv("LOTUSIM_SCENARIOS_PATH");
     if (!scenario_env) {
@@ -105,8 +107,8 @@ void ScenarioManager::handleLaunch(
 }
 
 void ScenarioManager::handleStop(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>&,
+    const std::shared_ptr<std_srvs::srv::Trigger::Response>& response)
 {
     if (!m_current_scenario) {
         m_logger->warn("ScenarioManager::handleStop: No scenario is running.");

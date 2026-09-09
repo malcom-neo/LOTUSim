@@ -15,9 +15,9 @@ namespace lotusim::gazebo {
 // commands
 
 TcpUdpInterface::TcpUdpInterface(
-    const std::string& world_name,
+    std::string world_name,
     std::shared_ptr<spdlog::logger> logger)
-    : RenderInterfaceBase(world_name, std::move(logger))
+    : RenderInterfaceBase(std::move(world_name), std::move(logger))
 {
     m_logger = logger::createConsoleAndFileLogger(
         "tcp_render_interface",
@@ -127,7 +127,7 @@ bool TcpUdpInterface::sendPosition(
     const std::chrono::steady_clock::duration& runTime,
     const std::vector<std::pair<std::string, gz::math::Pose3d>>& poses)
 {
-    float secs =
+    const float secs =
         std::chrono::duration_cast<std::chrono::duration<float>>(runTime)
             .count();
     boost::system::error_code err;

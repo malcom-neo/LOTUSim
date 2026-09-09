@@ -31,7 +31,7 @@ namespace lotusim::gazebo {
 class ROSInterface : public RenderInterfaceBase {
 public:
     ROSInterface(
-        const std::string& world_name,
+        std::string world_name,
         std::shared_ptr<spdlog::logger> logger);
     ~ROSInterface() override;
 

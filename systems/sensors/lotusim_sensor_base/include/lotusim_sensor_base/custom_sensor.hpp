@@ -48,8 +48,8 @@ public:
         rclcpp::Node::SharedPtr node,
         const gz::sim::Entity& vessel_entity,
         const gz::sim::Entity& sensor_entity,
-        const std::string& parent_name,
-        const std::string& sensor_name);
+        std::string parent_name,
+        std::string sensor_name);
 
     /// \brief Class destructor
     ~CustomSensor() override;
@@ -58,8 +58,8 @@ public:
     // virtual bool OnUpdate(const gz::sim::UpdateInfo &info) = 0;
 
     /// \brief Add noise normal distribution to the list
-    bool AddNoiseModel(std::string _name, double _sigma);
-    double GetGaussianNoise(std::string _name, double _amp);
+    bool AddNoiseModel(const std::string& _name, double _sigma);
+    double GetGaussianNoise(const std::string& _name, double _amp);
     double GetGaussianNoise(double _amp);
 
     /// \brief Get status of the sensor
@@ -105,10 +105,10 @@ protected:
 
 private:
     bool ChangeSensorState(
-        const std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Request>
-            _req,
-        std::shared_ptr<lotusim_sensor_msgs::srv::ActivateSensor::Response>
-            _res);
+        const std::shared_ptr<
+            lotusim_sensor_msgs::srv::ActivateSensor::Request>& _req,
+        const std::shared_ptr<
+            lotusim_sensor_msgs::srv::ActivateSensor::Response>& _res);
 
 protected:
     /**
@@ -147,7 +147,7 @@ protected:
     std::map<std::string, std::normal_distribution<double>> m_noise_models;
 
     /// \brief Flag to control the generation of output messages
-    bool m_is_on;
+    bool m_is_on{true};
 
     rclcpp::Node::SharedPtr m_ros_node;
 

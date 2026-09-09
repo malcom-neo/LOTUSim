@@ -132,10 +132,10 @@ std::optional<std::tuple<double, double, double>> XYToLatLong(
 }
 
 sdf::ElementPtr getElementCaseInsensitive(
-    sdf::ElementPtr parent,
+    const sdf::ElementPtr& parent,
     const std::string& name)
 {
-    std::string capitalized = toUpper(name);
+    const std::string capitalized = toUpper(name);
     auto element = parent->GetFirstElement();
     while (element) {
         auto element_name = toUpper(element->GetName());
@@ -163,13 +163,13 @@ PowerStateRegistry& PowerStateRegistry::instance()
 
 void PowerStateRegistry::set(const std::string& key, bool powered)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::scoped_lock lock(m_mutex);
     m_flags[key] = powered;
 }
 
 bool PowerStateRegistry::get(const std::string& key, bool defaultVal)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::scoped_lock lock(m_mutex);
     auto it = m_flags.find(key);
     return it != m_flags.end() ? it->second : defaultVal;
 }

@@ -85,8 +85,8 @@ public:
         rclcpp::Node::SharedPtr node,
         const gz::sim::Entity& vessel_entity,
         const gz::sim::Entity& sensor_entity,
-        const std::string& parent_name,
-        const std::string& sensor_name);
+        std::string parent_name,
+        std::string sensor_name);
 
     ~RadarSensor() override = default;
 
@@ -142,7 +142,7 @@ private:
      * @brief Pack a BGR byte array into a sensor_msgs::msg::Image and publish.
      */
     void PublishImage(
-        rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
+        const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
         const std::vector<uint8_t>& bgr_data,
         int width,
         int height,
@@ -165,7 +165,6 @@ private:
     RadarPSFParams m_psf;
 
     // ── ROS 2 publishers ─────────────────────────────────────────────────
-    rclcpp::Node::SharedPtr m_node;
 
     /// PSF-smeared radar display image → <vessel>/<sensor>/radar/image
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_radar_img_pub;

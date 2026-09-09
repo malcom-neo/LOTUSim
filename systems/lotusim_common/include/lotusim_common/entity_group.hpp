@@ -21,11 +21,11 @@ namespace lotusim::common {
  */
 class EntityGraph {
 public:
-    void addPair(const uint64_t& entity1, const uint64_t& entity2);
+    void addPair(uint64_t entity1, uint64_t entity2);
 
-    bool areLinked(const uint64_t& entity1, const uint64_t& entity2);
+    bool areLinked(uint64_t entity1, uint64_t entity2);
 
-    std::vector<uint64_t> getGroup(const uint64_t& entity);
+    std::vector<uint64_t> getGroup(uint64_t entity);
 
     std::vector<std::vector<uint64_t>> getAllSets();
 
@@ -34,7 +34,7 @@ public:
     void clearGraph();
 
 private:
-    uint64_t find(const uint64_t& entity);
+    uint64_t find(uint64_t entity);
 
     std::unordered_map<uint64_t, uint64_t> m_parent;
 };

@@ -10,15 +10,21 @@
 #include "power_subsystem/default_platform_power_manager.hpp"
 
 #include <algorithm>
+#include <ranges>
+#include <utility>
 
 namespace lotusim::gazebo {
 
 DefaultPlatformPowerManager::DefaultPlatformPowerManager(
     const gz::sim::Entity& vessel_entity,
-    const std::string& vessel_name,
+    std::string vessel_name,
     rclcpp::Node::SharedPtr node,
     sdf::ElementPtr sdfptr)
-    : PlatformPowerManagerBase(vessel_entity, vessel_name, node, sdfptr)
+    : PlatformPowerManagerBase(
+          vessel_entity,
+          std::move(vessel_name),
+          std::move(node),
+          std::move(sdfptr))
 {
 }
 
@@ -164,8 +170,7 @@ bool DefaultPlatformPowerManager::handleDepleted(
     float /*dt*/,
     float& bus_voltage)
 {
-    for (int i = m_active_battery_index;
-         i < static_cast<int>(m_batteries.size());
+    for (int i = m_active_battery_index; std::cmp_less(i, m_batteries.size());
          ++i) {
         if (!m_batteries[i]->isDepleted()) {
             if (i != m_active_battery_index) {
@@ -212,16 +217,17 @@ bool DefaultPlatformPowerManager::handleDepleted(
                 gen_available_A);
 
             for (int group = 4; group >= 2; --group) {
-                for (auto it = m_consumers.rbegin(); it != m_consumers.rend();
-                     ++it) {
-                    if (!(*it)->isActive() || (*it)->priority() != group)
+                for (auto& m_consumer :
+                     std::ranges::reverse_view(m_consumers)) {
+                    if (!m_consumer->isActive() ||
+                        m_consumer->priority() != group)
                         continue;
-                    demand_A -= (*it)->drawnCurrent();
-                    (*it)->deactivate();
+                    demand_A -= m_consumer->drawnCurrent();
+                    m_consumer->deactivate();
                     m_logger->warn(
                         "DefaultPlatformPowerManager: shed [{}] (priority {}), "
                         "remaining demand {:.3f} A",
-                        (*it)->name(),
+                        m_consumer->name(),
                         group,
                         demand_A);
                     if (demand_A <= gen_available_A)
@@ -246,8 +252,8 @@ void DefaultPlatformPowerManager::shedLoads(PowerLevel level)
         return;
 
     // if a spare battery is available, no shedding needed
-    for (int i = m_active_battery_index + 1;
-         i < static_cast<int>(m_batteries.size());
+    for (int i = std::max(0, m_active_battery_index);
+         std::cmp_less(i, m_batteries.size());
          ++i) {
         if (!m_batteries[i]->isDepleted()) {
             m_logger->debug(
@@ -268,16 +274,16 @@ void DefaultPlatformPowerManager::shedLoads(PowerLevel level)
         return;
     }
 
-    // WARN → shed priority 4; CRITICAL → shed priority 3 and below; one per
-    // tick
+    // WARN → shed priority 4; CRITICAL → shed priority 3 and below; one
+    // per tick
     const int max_group = (level == PowerLevel::WARN) ? 4 : 3;
     for (int group = max_group; group >= 2; --group) {
-        for (auto it = m_consumers.rbegin(); it != m_consumers.rend(); ++it) {
-            if ((*it)->isActive() && (*it)->priority() == group) {
-                (*it)->deactivate();
+        for (auto& m_consumer : std::ranges::reverse_view(m_consumers)) {
+            if (m_consumer->isActive() && m_consumer->priority() == group) {
+                m_consumer->deactivate();
                 m_logger->warn(
                     "DefaultPlatformPowerManager: shed consumer [{}] (priority {})",
-                    (*it)->name(),
+                    m_consumer->name(),
                     group);
                 return;
             }
@@ -288,8 +294,8 @@ void DefaultPlatformPowerManager::shedLoads(PowerLevel level)
 }
 
 float DefaultPlatformPowerManager::computeChargeCurrentA(
-    std::shared_ptr<Generator> gen,
-    std::shared_ptr<Battery> bat,
+    const std::shared_ptr<Generator>& gen,
+    const std::shared_ptr<Battery>& bat,
     float safe_voltage) const
 {
     if (!gen || !bat || gen->isDepleted())

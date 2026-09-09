@@ -17,6 +17,7 @@
 #include <sdf/sdf.hh>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "lotusim_common/logger.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -130,7 +131,7 @@ public:
         const std::string& vessel_name,
         const sdf::ElementPtr& sdf,
         rclcpp::Node::SharedPtr node,
-        std::shared_ptr<spdlog::logger> logger);
+        const std::shared_ptr<spdlog::logger>& logger);
 
     virtual ~PowerProvider() = default;
 
@@ -216,16 +217,16 @@ protected:
      * @param node  shared node owned by PowerManager
      */
     PowerProvider(
-        const std::string& provider_name,
-        const std::string& vessel_name,
+        std::string provider_name,
+        std::string vessel_name,
         const sdf::ElementPtr& /*sdf*/,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)
         : m_provider_name(std::move(provider_name))
         , m_vessel_name(std::move(vessel_name))
         , m_node(std::move(node))
-        , m_logger(logger)
-        , m_provider_type(ProviderType::Unknown)
+        , m_logger(std::move(logger))
+
     {
     }
 
@@ -239,6 +240,6 @@ protected:
 
     std::shared_ptr<spdlog::logger> m_logger;
 
-    ProviderType m_provider_type;
+    ProviderType m_provider_type{ProviderType::Unknown};
 };
 }  // namespace lotusim::gazebo

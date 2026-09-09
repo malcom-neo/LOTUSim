@@ -46,8 +46,8 @@ public:
      * @param node      node from PowerManager
      */
     SensorPowerConsumer(
-        const std::string& consumer_name,
-        const std::string& vessel_name,
+        std::string consumer_name,
+        std::string vessel_name,
         const sdf::ElementPtr& sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)

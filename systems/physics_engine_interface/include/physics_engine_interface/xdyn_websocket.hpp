@@ -123,7 +123,7 @@ public:
 
     static void resetInstance()
     {
-        std::scoped_lock lock(m_instance_mutex);
+        const std::scoped_lock lock(m_instance_mutex);
         m_instance.reset();
     }
 
@@ -172,7 +172,7 @@ private:
 
     void onMessage(
         websocketpp::connection_hdl hdl,
-        websocketpp::config::asio_client::message_type::ptr msg);
+        const websocketpp::config::asio_client::message_type::ptr& msg);
 
     void onOpen(
         const gz::sim::Entity& _entity,

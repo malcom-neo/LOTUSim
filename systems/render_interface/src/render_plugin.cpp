@@ -16,7 +16,7 @@ namespace {
 std::shared_ptr<RenderInterfaceBase> CreateRenderInterface(
     const std::string& protocol,
     const std::string& world_name,
-    std::shared_ptr<spdlog::logger> logger)
+    const std::shared_ptr<spdlog::logger>& logger)
 {
     if (protocol == "TCPUDP") {
         return std::make_shared<TcpUdpInterface>(world_name, logger);
@@ -82,8 +82,8 @@ void RenderPlugin::PreUpdate(
         [&](const gz::sim::Entity& _entity,
             const gz::sim::components::ModelSdf* _model,
             const gz::sim::components::ParentEntity*) -> bool {
-            sdf::Model data = _model->Data();
-            sdf::ElementPtr sdfptr = data.Element();
+            const sdf::Model& data = _model->Data();
+            const sdf::ElementPtr sdfptr = data.Element();
 
             auto includeptr = sdfptr->GetIncludeElement();
             // The lotus param will either be include statement or part of the
@@ -103,7 +103,7 @@ void RenderPlugin::PreUpdate(
                 auto name_opt =
                     _ecm.Component<gz::sim::components::Name>(_entity);
                 if (name_opt) {
-                    std::lock_guard<std::mutex> lock(m_mutex);
+                    const std::scoped_lock lock(m_mutex);
                     m_vessel_entity[name_opt->Data()] = _entity;
                 } else {
                     m_logger->warn(
@@ -114,7 +114,7 @@ void RenderPlugin::PreUpdate(
                 m_logger->info(
                     "RenderPlugin::PreUpdate: Creation detected of vessel named {}",
                     name_opt->Data());
-                gz::math::Pose3d pose =
+                const gz::math::Pose3d pose =
                     _ecm.Component<gz::sim::components::Pose>(_entity)->Data();
                 return m_render_interface->createVessel(
                     name_opt->Data(),
@@ -136,7 +136,7 @@ void RenderPlugin::PreUpdate(
                 m_logger->info(
                     "RenderPlugin::PreUpdate: Destruction detected of vessel named {}",
                     name_opt->Data());
-                std::lock_guard<std::mutex> lock(m_mutex);
+                const std::scoped_lock lock(m_mutex);
                 m_vessel_entity.erase(name_opt->Data());
                 return m_render_interface->destroyVessel(name_opt->Data());
             }
@@ -156,9 +156,9 @@ void RenderPlugin::PostUpdate(
     std::vector<std::pair<std::string, gz::math::Pose3d>> vessel_pose;
     // get a vector of vessel name, pose
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        const std::scoped_lock lock(m_mutex);
         for (auto&& entity : m_vessel_entity) {
-            gz::math::Pose3d pose =
+            const gz::math::Pose3d pose =
                 _ecm.Component<gz::sim::components::Pose>(entity.second)
                     ->Data();
 

@@ -43,7 +43,7 @@ constexpr ip::port_type DEFAULT_TCP_PORT = 23457;
 class TcpUdpInterface final : public RenderInterfaceBase {
 public:
     TcpUdpInterface(
-        const std::string& world_name,
+        std::string world_name,
         std::shared_ptr<spdlog::logger> logger);
 
     ~TcpUdpInterface() override;

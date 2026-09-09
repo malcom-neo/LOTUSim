@@ -22,11 +22,11 @@ shell = "bash -c"
 usage = 'flag "--debug" help="Build with DEBUG=ON and a symlinked install"'
 run = '''
 if [ "${usage_debug:-false}" = "true" ]; then
-  colcon build --merge-install --symlink-install \
-    --event-handlers compile_commands+ \
+  colcon --log-level error build --merge-install --symlink-install \
+    --event-handlers compile_commands+ console_cohesion+ \
     --cmake-args -DDEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 else
-  colcon build --merge-install --event-handlers compile_commands+ \
+  colcon --log-level error build --merge-install --event-handlers compile_commands+ \
     --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 '''

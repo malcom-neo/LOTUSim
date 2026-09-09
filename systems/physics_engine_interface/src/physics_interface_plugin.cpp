@@ -53,7 +53,8 @@ void PhysicsInterfacePlugin::Configure(
         lotusim_msgs::msg::VesselCmdArray>(
         "vessel_cmd_array",
         10,
-        [this](lotusim_msgs::msg::VesselCmdArray::ConstSharedPtr msgs) -> void {
+        [this](const lotusim_msgs::msg::VesselCmdArray::ConstSharedPtr& msgs)
+            -> void {
             for (auto&& msg : msgs->cmds) {
                 const std::optional<gz::sim::Entity> entity =
                     [&]() -> std::optional<gz::sim::Entity> {
@@ -74,7 +75,7 @@ void PhysicsInterfacePlugin::Configure(
                         msg.vessel_name);
                     continue;
                 }
-                (*m_models_cmd_map_ptr)[*entity] = std::move(msg.cmd_string);
+                (*m_models_cmd_map_ptr)[*entity] = msg.cmd_string;
             }
         });
 
@@ -110,7 +111,7 @@ void PhysicsInterfacePlugin::Update(
         lotusim::common::RandomisedType::RANDOM);
     std::vector<std::future<void>> futures;
 
-    std::chrono::_V2::system_clock::time_point start_time =
+    const std::chrono::_V2::system_clock::time_point start_time =
         std::chrono::system_clock::now();
 
     for (auto&& vessel_entity : m_vessels_entities) {
@@ -167,7 +168,7 @@ void PhysicsInterfacePlugin::updateVesselState(
         gz::math::Vector3d ang_vel;
         std::string vessel_name;
         {
-            std::shared_lock<std::shared_mutex> lock(m_mutex);
+            const std::shared_lock<std::shared_mutex> lock(m_mutex);
             auto it_name = m_vessels_name_map.find(vessel_entity);
             if (it_name == m_vessels_name_map.end()) {
                 m_logger->error(
@@ -177,10 +178,10 @@ void PhysicsInterfacePlugin::updateVesselState(
             }
             vessel_name = it_name->second;
 
-            float target_time =
+            const float target_time =
                 std::chrono::duration<float, std::milli>(_info.dt).count();
 
-            std::chrono::_V2::system_clock::time_point start_time =
+            const std::chrono::_V2::system_clock::time_point start_time =
                 std::chrono::system_clock::now();
 
             auto pose_comp =
@@ -201,7 +202,7 @@ void PhysicsInterfacePlugin::updateVesselState(
                     vessel_name);
                 return;
             }
-            gz::sim::Link _link(it_base->second);
+            const gz::sim::Link _link(it_base->second);
 
             // Get the linear and angular velocity in world frame, ENU.
             auto lin_vel_opt = _link.WorldLinearVelocity(_ecm);
@@ -252,8 +253,7 @@ void PhysicsInterfacePlugin::updateVesselState(
                     vessel_name);
             }
 
-            VesselInformation new_state =
-                std::move(std::get<0>(update_opt.value()));
+            const VesselInformation new_state = std::get<0>(update_opt.value());
 
             pose = new_state.pose;
             lin_vel = new_state.lin_vel;
@@ -294,7 +294,7 @@ void PhysicsInterfacePlugin::updateVesselState(
 void PhysicsInterfacePlugin::createDomainInterface(
     const gz::sim::Entity& _entity,
     const std::string& _vessel_name,
-    sdf::ElementPtr _physics_sdf,
+    const sdf::ElementPtr& _physics_sdf,
     const lotusim::gazebo::DomainType& _domain,
     std::unordered_map<gz::sim::Entity, std::shared_ptr<PhysicsInterfaceBase>>&
         _interface_map)
@@ -357,7 +357,7 @@ bool PhysicsInterfacePlugin::vesselDomainTransition(
     std::string new_domain;
     bool transited = false;
     try {
-        std::shared_lock<std::shared_mutex> lock(m_mutex);
+        const std::shared_lock<std::shared_mutex> lock(m_mutex);
 
         if (m_vehicle_current_mode.find(_vessel) !=
                 m_vehicle_current_mode.end() &&
@@ -411,7 +411,7 @@ bool PhysicsInterfacePlugin::vesselDomainTransition(
         return false;
     }
 
-    std::unique_lock<std::shared_mutex> lock(m_mutex);
+    const std::unique_lock<std::shared_mutex> lock(m_mutex);
     if (m_vehicle_current_mode.find(_vessel) != m_vehicle_current_mode.end() &&
         !m_current_vessel_interface[_vessel]->deactivateInterface(
             _vessel,
@@ -432,8 +432,8 @@ bool PhysicsInterfacePlugin::loadVessel(
 {
     try {
         gz::sim::Entity base_link;
-        sdf::Model data = _model->Data();
-        sdf::ElementPtr sdfptr = data.Element();
+        const sdf::Model& data = _model->Data();
+        const sdf::ElementPtr sdfptr = data.Element();
         auto name_opt = _ecm->Component<gz::sim::components::Name>(_entity);
         std::string vessel_name;
         if (name_opt) {
@@ -454,7 +454,7 @@ bool PhysicsInterfacePlugin::loadVessel(
                 ->HasElement("physics_engine_interface")) {
             m_logger->debug(includeptr->ToString(""));
             {
-                std::unique_lock<std::shared_mutex> lock(m_mutex);
+                const std::unique_lock<std::shared_mutex> lock(m_mutex);
                 m_vessels_entities.push_back(_entity);
                 m_vessels_model_map[vessel_name] = _entity;
                 m_vessels_name_map[_entity] = vessel_name;
@@ -470,13 +470,13 @@ bool PhysicsInterfacePlugin::loadVessel(
                     name_opt->Data().find("base_link") != std::string::npos) {
                     base_link = link;
                     m_vessels_base_link_map[vessel_name] = base_link;
-                    gz::sim::Link _link(base_link);
+                    const gz::sim::Link _link(base_link);
                     _link.EnableVelocityChecks(*_ecm);
                     break;
                 }
             }
             // Init Interface
-            sdf::ElementPtr physics_sdf_ptr =
+            const sdf::ElementPtr physics_sdf_ptr =
                 includeptr->GetElement("lotus_param")
                     ->GetElement("physics_engine_interface");
             m_logger->info(
@@ -484,7 +484,7 @@ bool PhysicsInterfacePlugin::loadVessel(
                 _entity,
                 vessel_name);
             // If vessel has aerial component
-            sdf::ElementPtr aerial_sdf =
+            const sdf::ElementPtr aerial_sdf =
                 lotusim::common::getElementCaseInsensitive(
                     physics_sdf_ptr,
                     "aerial");
@@ -498,7 +498,7 @@ bool PhysicsInterfacePlugin::loadVessel(
             }
 
             // If vessel has surface component
-            sdf::ElementPtr surface_sdf =
+            const sdf::ElementPtr surface_sdf =
                 lotusim::common::getElementCaseInsensitive(
                     physics_sdf_ptr,
                     "surface");
@@ -512,7 +512,7 @@ bool PhysicsInterfacePlugin::loadVessel(
             }
 
             // If vessel has underwater component
-            sdf::ElementPtr underwater_sdf =
+            const sdf::ElementPtr underwater_sdf =
                 lotusim::common::getElementCaseInsensitive(
                     physics_sdf_ptr,
                     "underwater");
@@ -578,7 +578,7 @@ bool PhysicsInterfacePlugin::deleteVessel(
     gz::sim::EntityComponentManager*)
 {
     try {  // Deactivate interface
-        std::unique_lock<std::shared_mutex> lock(m_mutex);
+        const std::unique_lock<std::shared_mutex> lock(m_mutex);
         if (m_vessels_name_map.find(_entity) != m_vessels_name_map.end()) {
             m_logger->info(
                 "PhysicsInterfacePlugin::deleteVessel: Removing vessel {}",

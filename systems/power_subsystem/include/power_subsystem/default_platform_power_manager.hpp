@@ -75,7 +75,7 @@ public:
      */
     DefaultPlatformPowerManager(
         const gz::sim::Entity& vessel_entity,
-        const std::string& vessel_name,
+        std::string vessel_name,
         rclcpp::Node::SharedPtr node,
         sdf::ElementPtr sdfptr);
 
@@ -154,8 +154,8 @@ private:
      * @return Charge current in amperes (>= 0).
      */
     float computeChargeCurrentA(
-        std::shared_ptr<Generator> gen,
-        std::shared_ptr<Battery> bat,
+        const std::shared_ptr<Generator>& gen,
+        const std::shared_ptr<Battery>& bat,
         float safe_voltage) const;
 
     /**

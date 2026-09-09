@@ -9,6 +9,8 @@
  */
 #include "subsea_pressure_sensor/subsea_pressure_sensor.hh"
 
+#include <utility>
+
 namespace lotusim::sensor {
 
 SubseaPressureSensor::SubseaPressureSensor(
@@ -19,8 +21,8 @@ SubseaPressureSensor::SubseaPressureSensor(
     const std::string& parent_name,
     const std::string& sensor_name)
     : CustomSensor(
-          logger,
-          node,
+          std::move(logger),
+          std::move(node),
           vessel_entity,
           sensor_entity,
           parent_name,
@@ -32,7 +34,7 @@ SubseaPressureSensor::~SubseaPressureSensor() = default;
 
 bool SubseaPressureSensor::CustomSensorLoad(const sdf::Sensor& _sdf)
 {
-    sdf::ElementPtr _sdfptr = _sdf.Element();
+    const sdf::ElementPtr _sdfptr = _sdf.Element();
     GetSDFParam<double>(_sdfptr, "m_saturation", m_saturation, 3000);
     GetSDFParam<bool>(_sdfptr, "estimate_depth_on", m_estimate_depth, false);
     GetSDFParam<double>(
@@ -56,7 +58,7 @@ bool SubseaPressureSensor::UpdateSensor(
     if (!EnableMeasurement(_info.simTime))
         return false;
 
-    double depth = std::abs(m_position.Z());
+    const double depth = std::abs(m_position.Z());
     double pressure = m_standard_pressure;
     if (depth >= 0) {
         // Convert depth to pressure

@@ -185,20 +185,21 @@ private:
     // MASCmd Array action server functions
     rclcpp_action::GoalResponse handleMASCmdArrayGoal(
         const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal> goal);
+        const std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal>&
+            goal);
     rclcpp_action::CancelResponse handleMASCmdArrayCancel(
-        const std::shared_ptr<GoalHandleMASCmdArray> goal_handle);
+        const std::shared_ptr<GoalHandleMASCmdArray>& goal_handle);
     void handleMASCmdArrayAccepted(
-        const std::shared_ptr<GoalHandleMASCmdArray> goal_handle);
+        const std::shared_ptr<GoalHandleMASCmdArray>& goal_handle);
 
     // MASCmd action server functions
     rclcpp_action::GoalResponse handleMASCmdGoal(
         const rclcpp_action::GoalUUID& uuid,
-        std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal> goal);
+        const std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal>& goal);
     rclcpp_action::CancelResponse handleMASCmdCancel(
-        const std::shared_ptr<GoalHandleMASCmd> goal_handle);
+        const std::shared_ptr<GoalHandleMASCmd>& goal_handle);
     void handleMASCmdAccepted(
-        const std::shared_ptr<GoalHandleMASCmd> goal_handle);
+        const std::shared_ptr<GoalHandleMASCmd>& goal_handle);
 
     /**
      * @brief Main function handle all the MAScmd

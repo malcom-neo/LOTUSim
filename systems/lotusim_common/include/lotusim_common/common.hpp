@@ -174,7 +174,7 @@ std::optional<std::tuple<double, double, double>> XYToLatLong(
  * @return sdf::ElementPtr
  */
 sdf::ElementPtr getElementCaseInsensitive(
-    sdf::ElementPtr parent,
+    const sdf::ElementPtr& parent,
     const std::string& name);
 
 /**

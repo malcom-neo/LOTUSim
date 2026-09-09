@@ -123,8 +123,8 @@ bool PowerManager::loadVessel(
     }
     const std::string vesselName = nameOpt->second;
 
-    sdf::Model data = _model_sdf->Data();
-    sdf::ElementPtr sdfptr = data.Element();
+    const sdf::Model& data = _model_sdf->Data();
+    const sdf::ElementPtr sdfptr = data.Element();
     if (!sdfptr) {
         m_logger->error(
             "PlatformPowerManager [{}]: ModelSdf has no element",

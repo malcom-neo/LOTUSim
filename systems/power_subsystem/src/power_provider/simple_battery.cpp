@@ -10,14 +10,15 @@
 #include "power_subsystem/power_provider/simple_battery.hpp"
 
 #include <algorithm>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 
 namespace lotusim::gazebo {
 
 SimpleBattery::SimpleBattery(
-    const std::string& battery_name,
-    const std::string& vessel_name,
+    std::string battery_name,
+    std::string vessel_name,
     const sdf::ElementPtr& _sdf,
     rclcpp::Node::SharedPtr node,
     std::shared_ptr<spdlog::logger> logger)
@@ -26,7 +27,7 @@ SimpleBattery::SimpleBattery(
           std::move(vessel_name),
           _sdf,
           std::move(node),
-          logger)
+          std::move(logger))
     , m_voltage(0.0f)
     , m_voltage_nominal(_sdf->Get<float>("voltage_nominal", 48.0f).first)
     , m_remainingAh(

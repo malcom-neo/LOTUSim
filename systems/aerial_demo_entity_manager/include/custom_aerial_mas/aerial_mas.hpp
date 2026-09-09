@@ -32,7 +32,7 @@ private:
 
     void resultCB(const ClientGoalHandleMASCmd::WrappedResult& result);
 
-    void goalResponseCB(ClientGoalHandleMASCmd::SharedPtr goal_handle);
+    void goalResponseCB(const ClientGoalHandleMASCmd::SharedPtr& goal_handle);
 
 private:
     rclcpp_action::Client<lotusim_msgs::action::MASCmd>::SharedPtr

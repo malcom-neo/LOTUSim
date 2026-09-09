@@ -8,8 +8,8 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
     const std::string& consumer_name,
     const std::string& vessel_name,
     const sdf::ElementPtr& sdf,
-    rclcpp::Node::SharedPtr node,
-    std::shared_ptr<spdlog::logger> logger)
+    const rclcpp::Node::SharedPtr& node,
+    const std::shared_ptr<spdlog::logger>& logger)
 {
     if (!sdf->HasElement("lotusim_power")) {
         logger->debug(
@@ -17,7 +17,7 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
             "<lotusim_power> -> skipping",
             vessel_name,
             consumer_name);
-        return {nullptr, ConsumerType{}};
+        return {.consumer = nullptr, .type = ConsumerType{}};
     }
 
     const sdf::ElementPtr powerEl = sdf->GetElement("lotusim_power");
@@ -30,7 +30,7 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
             "but missing <type> -> skipping",
             vessel_name,
             consumer_name);
-        return {nullptr, ConsumerType{}};
+        return {.consumer = nullptr, .type = ConsumerType{}};
     }
 
     const auto typeOpt = consumerTypeFromString(powerTypeStr);
@@ -41,7 +41,7 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
             powerTypeStr,
             vessel_name,
             consumer_name);
-        return {nullptr, ConsumerType{}};
+        return {.consumer = nullptr, .type = ConsumerType{}};
     }
 
     const ConsumerType type = *typeOpt;
@@ -60,7 +60,7 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
                 consumer_name,
                 vessel_name,
                 toString(type));
-            return {std::move(consumer), type};
+            return {.consumer = std::move(consumer), .type = type};
         }
         case ConsumerType::Thruster: {
             auto consumer = std::make_shared<ThrusterPowerConsumer>(
@@ -75,12 +75,12 @@ PowerConsumer::CreateResult PowerConsumer::createFromSdf(
                 consumer_name,
                 vessel_name,
                 toString(type));
-            return {std::move(consumer), type};
+            return {.consumer = std::move(consumer), .type = type};
         }
         default:
-            return {nullptr, ConsumerType::Unknown};
+            return {.consumer = nullptr, .type = ConsumerType::Unknown};
     }
-    return {nullptr, type};
+    return {.consumer = nullptr, .type = type};
 }
 
 }  // namespace lotusim::gazebo

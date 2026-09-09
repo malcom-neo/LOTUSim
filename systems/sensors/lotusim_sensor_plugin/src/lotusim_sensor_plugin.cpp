@@ -25,7 +25,7 @@ void LotusimSensorPlugin::Configure(
     m_ecm = &_ecm;
     m_world_name = lotusim::common::getWorldName(_ecm);
 
-    std::string logger_name = m_world_name + "_lotusim_sensors";
+    const std::string logger_name = m_world_name + "_lotusim_sensors";
 
     m_logger =
         logger::createConsoleAndFileLogger(logger_name, logger_name + ".txt");
@@ -153,7 +153,7 @@ void LotusimSensorPlugin::OnNewLidarFrame(
 
     msg.is_dense = true;
 
-    size_t total_bytes =
+    const size_t total_bytes =
         static_cast<size_t>(_width) * _height * _channels * sizeof(float);
     msg.data.resize(total_bytes);
     memcpy(msg.data.data(), _scan, total_bytes);
@@ -163,7 +163,7 @@ void LotusimSensorPlugin::OnNewLidarFrame(
 
 void LotusimSensorPlugin::collisionCB(const gz::msgs::Contacts& _msg)
 {
-    std::lock_guard<std::mutex> lock(m_collision_mutex);
+    const std::scoped_lock lock(m_collision_mutex);
     for (auto&& collision : _msg.contact()) {
         m_collision_graph.addPair(
             collision.collision1().id(),
@@ -192,7 +192,7 @@ void LotusimSensorPlugin::PostUpdate(
     {
         std::vector<std::vector<uint64_t>> collisions;
         {
-            std::lock_guard<std::mutex> lock(m_collision_mutex);
+            const std::scoped_lock lock(m_collision_mutex);
             collisions = m_collision_graph.getAllSets();
             m_collision_graph.clearGraph();
         }
@@ -268,7 +268,7 @@ bool LotusimSensorPlugin::EachNew(
         auto sensor_name =
             m_ecm->Component<gz::sim::components::Name>(_entity)->Data();
 
-        sdf::Sensor data = _custom->Data();
+        const sdf::Sensor& data = _custom->Data();
         auto type = gz::sensors::customType(data);
         std::unique_ptr<CustomSensor> sensor;
         // Add more sensor below
@@ -326,7 +326,7 @@ bool LotusimSensorPlugin::EachNew(
             auto name_opt = m_ecm->Component<gz::sim::components::Name>(link);
             if (name_opt &&
                 name_opt->Data().find("base_link") != std::string::npos) {
-                gz::sim::Link _link(link);
+                const gz::sim::Link _link(link);
                 _link.EnableVelocityChecks(*m_ecm);
                 break;
             }

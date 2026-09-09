@@ -139,7 +139,7 @@ void EntityManager::PreUpdate(
     {
         std::vector<std::shared_ptr<GoalHandleMASCmdArray>> tmp_vec;
         {
-            std::lock_guard<std::mutex> lock(m_cmds_array_mutex);
+            const std::scoped_lock lock(m_cmds_array_mutex);
             tmp_vec = m_mas_cmds_array;
             m_mas_cmds_array.clear();
         }
@@ -172,7 +172,7 @@ void EntityManager::PreUpdate(
     {
         std::vector<std::shared_ptr<GoalHandleMASCmd>> tmp_vec;
         {
-            std::lock_guard<std::mutex> lock(m_cmds_mutex);
+            const std::scoped_lock lock(m_cmds_mutex);
             tmp_vec = m_mas_cmds;
             m_mas_cmds.clear();
         }
@@ -284,7 +284,7 @@ void EntityManager::Update(
         }
 
         {
-            std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+            const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
             m_vessels_entities[vessel_name] = _entity;
             m_vessels_names[_entity] = vessel_name;
         }
@@ -297,7 +297,7 @@ void EntityManager::Update(
             if (name_opt &&
                 name_opt->Data().find("base_link") != std::string::npos) {
                 auto base_link = link;
-                gz::sim::Link _link(base_link);
+                const gz::sim::Link _link(base_link);
                 _link.EnableVelocityChecks(*m_ecm);
                 break;
             }
@@ -311,11 +311,11 @@ void EntityManager::Update(
             const gz::sim::components::ModelSdf*) {
             auto name_opt =
                 m_ecm->Component<gz::sim::components::Name>(_entity);
-            std::string vessel_name;
+            const std::string vessel_name;
             if (!name_opt) {
                 return true;
             }
-            std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+            const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
             m_vessels_entities.erase(vessel_name);
             m_vessels_names.erase(_entity);
             return true;
@@ -331,7 +331,7 @@ void EntityManager::PostUpdate(
 
 rclcpp_action::GoalResponse EntityManager::handleMASCmdArrayGoal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal>)
+    const std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal>&)
 {
     m_logger->info(
         "EntityManager::handleMASCmdArrayGoal: Received MASCmdArray.");
@@ -339,38 +339,38 @@ rclcpp_action::GoalResponse EntityManager::handleMASCmdArrayGoal(
 }
 
 rclcpp_action::CancelResponse EntityManager::handleMASCmdArrayCancel(
-    const std::shared_ptr<GoalHandleMASCmdArray>)
+    const std::shared_ptr<GoalHandleMASCmdArray>&)
 {
     // Not allowed to cancel for now
     return rclcpp_action::CancelResponse::REJECT;
 }
 
 void EntityManager::handleMASCmdArrayAccepted(
-    const std::shared_ptr<GoalHandleMASCmdArray> goal_handle)
+    const std::shared_ptr<GoalHandleMASCmdArray>& goal_handle)
 {
-    std::lock_guard<std::mutex> lock(m_cmds_array_mutex);
+    const std::scoped_lock lock(m_cmds_array_mutex);
     m_mas_cmds_array.push_back(goal_handle);
 }
 
 rclcpp_action::GoalResponse EntityManager::handleMASCmdGoal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal>)
+    const std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal>&)
 {
     m_logger->info("EntityManager::handleMASCmdGoal: Received MASCmd.");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse EntityManager::handleMASCmdCancel(
-    const std::shared_ptr<GoalHandleMASCmd>)
+    const std::shared_ptr<GoalHandleMASCmd>&)
 {
     // Not allowed to cancel for now
     return rclcpp_action::CancelResponse::REJECT;
 }
 
 void EntityManager::handleMASCmdAccepted(
-    const std::shared_ptr<GoalHandleMASCmd> goal_handle)
+    const std::shared_ptr<GoalHandleMASCmd>& goal_handle)
 {
-    std::lock_guard<std::mutex> lock(m_cmds_mutex);
+    const std::scoped_lock lock(m_cmds_mutex);
     m_mas_cmds.push_back(goal_handle);
 }
 
@@ -405,7 +405,7 @@ std::optional<std::tuple<uint16_t, std::string>> EntityManager::addEntity(
 {
     sdf::Root root;
     sdf::Errors errors;
-    tinyxml2::XMLDocument lotus_param_doc;
+    const tinyxml2::XMLDocument lotus_param_doc;
 
     // If model name is given, we will load the asset based on the name and the
     // lotus param is expected in the sdf string Else we will expect the whole
@@ -421,7 +421,8 @@ std::optional<std::tuple<uint16_t, std::string>> EntityManager::addEntity(
             return std::nullopt;
         }
 
-        std::string file_path = std::string(asset_path) + "/" + msg.model_name;
+        const std::string file_path =
+            std::string(asset_path) + "/" + msg.model_name;
 
         if (!msg.sdf_string.empty()) {
             tinyxml2::XMLDocument sdfDoc;
@@ -435,7 +436,7 @@ std::optional<std::tuple<uint16_t, std::string>> EntityManager::addEntity(
                 sdf_filename,
                 msg.model_name);
 
-            tinyxml2::XMLError loadResult =
+            const tinyxml2::XMLError loadResult =
                 sdfDoc.LoadFile((file_path + "/" + sdf_filename).c_str());
             if (loadResult != tinyxml2::XML_SUCCESS) {
                 m_logger->error("    file.{}", file_path + "/" + sdf_filename);
@@ -459,7 +460,7 @@ std::optional<std::tuple<uint16_t, std::string>> EntityManager::addEntity(
             tinyxml2::XMLDocument lotusDoc;
             lotusDoc.Parse(msg.sdf_string.c_str());
 
-            tinyxml2::XMLElement* lotusElem =
+            const tinyxml2::XMLElement* lotusElem =
                 lotusDoc.FirstChildElement("lotus_param");
             if (!lotusElem) {
                 m_logger->error(
@@ -479,7 +480,7 @@ std::optional<std::tuple<uint16_t, std::string>> EntityManager::addEntity(
                 "EntityManager::addEntity: modified loaded sdf.\n{}",
                 modifiedSDF);
 
-            sdf::Errors errors = root.LoadSdfString(modifiedSDF);
+            const sdf::Errors errors = root.LoadSdfString(modifiedSDF);
             if (!errors.empty()) {
                 m_logger->error(
                     "EntityManager::addEntity: Errors when loading modified SDF into sdf::Root:");
@@ -561,7 +562,7 @@ bool EntityManager::moveEntity(const lotusim_msgs::msg::MASCmd& msg)
             !msg.vessel_name.empty() &&
             m_vessels_entities.find(msg.vessel_name) !=
                 m_vessels_entities.end()) {
-            std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
+            const std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
             vessel_entity = m_vessels_entities.at(msg.vessel_name);
         } else {
             m_logger->error(
@@ -590,7 +591,7 @@ bool EntityManager::moveEntity(const lotusim_msgs::msg::MASCmd& msg)
             }
         }
 
-        bool res = m_ecm->SetComponentData<gz::sim::components::Pose>(
+        const bool res = m_ecm->SetComponentData<gz::sim::components::Pose>(
             vessel_entity,
             pose);
         if (!res) {
@@ -605,7 +606,7 @@ bool EntityManager::moveEntity(const lotusim_msgs::msg::MASCmd& msg)
             gz::sim::components::Pose::typeId,
             gz::sim::ComponentState::OneTimeChange);
 
-    } catch (std::out_of_range const& exc) {
+    } catch (const std::out_of_range& exc) {
         m_logger->error(
             "EntityManager::moveEntity: Failed to move {}, entity: {}",
             msg.vessel_name,
@@ -625,7 +626,7 @@ bool EntityManager::deleteEntity(const lotusim_msgs::msg::MASCmd& msg)
 {
     gz::sim::Entity vessel_entity;
     try {
-        std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
+        const std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
 
         if (msg.entity) {
             vessel_entity = msg.entity;
@@ -662,7 +663,7 @@ void EntityManager::publishPose(
     array_msg.header.stamp.nanosec =
         static_cast<uint32_t>(simTimeNs % 1000000000);
     array_msg.header.frame_id = "world";
-    std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
     for (auto&& vessel_map : m_vessels_names) {
         auto entity = vessel_map.first;
         auto latLonEle = sphericalCoordinates(entity, _ecm);

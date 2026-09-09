@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 #include "lotusim_sensor_base/common.hpp"
@@ -27,17 +28,16 @@ RadarSensor::RadarSensor(
     rclcpp::Node::SharedPtr node,
     const gz::sim::Entity& vessel_entity,
     const gz::sim::Entity& sensor_entity,
-    const std::string& parent_name,
-    const std::string& sensor_name)
+    std::string parent_name,
+    std::string sensor_name)
     : CustomSensor(
-          logger,
-          node,
+          std::move(logger),
+          std::move(node),
           vessel_entity,
           sensor_entity,
-          parent_name,
-          sensor_name)
+          std::move(parent_name),
+          std::move(sensor_name))
 {
-    m_node = node;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -45,7 +45,7 @@ RadarSensor::RadarSensor(
 // ═══════════════════════════════════════════════════════════════════════════
 bool RadarSensor::CustomSensorLoad(const sdf::Sensor& _sdf)
 {
-    sdf::ElementPtr elem = _sdf.Element();
+    const sdf::ElementPtr elem = _sdf.Element();
 
     GetSDFParam<double>(
         elem,
@@ -93,7 +93,7 @@ void RadarSensor::OnPointCloud(const gz::msgs::PointCloudPacked& _msg)
             m_vessel_name + "/" + m_sensor_name))
         return;
 
-    std::lock_guard<std::mutex> lock(m_cloud_mutex);
+    const std::scoped_lock lock(m_cloud_mutex);
     m_latest_cloud = _msg;
     m_cloud_received = true;
 }
@@ -111,14 +111,14 @@ bool RadarSensor::UpdateSensor(
         m_vessel_name + "/" + m_sensor_name);
 
     if (!powered) {
-        std::lock_guard<std::mutex> lock(m_cloud_mutex);
+        const std::scoped_lock lock(m_cloud_mutex);
         m_cloud_received = false;
         return false;
     }
 
     // ── One-time setup: subscribe using world name from ECM ───────────────s
     if (!m_subscribed) {
-        std::string world_name = lotusim::common::getWorldName(_ecm);
+        const std::string world_name = lotusim::common::getWorldName(_ecm);
         std::string topic = "/world/" + world_name + "/model/" + m_vessel_name +
                             "/link/base_link/sensor/lidar_sensor/scan/points";
 
@@ -139,7 +139,7 @@ bool RadarSensor::UpdateSensor(
     // ── Grab latest cloud ─────────────────────────────────────────────────
     gz::msgs::PointCloudPacked cloud_copy;
     {
-        std::lock_guard<std::mutex> lock(m_cloud_mutex);
+        const std::scoped_lock lock(m_cloud_mutex);
         if (!m_cloud_received)
             return true;
         cloud_copy = m_latest_cloud;
@@ -206,7 +206,7 @@ bool RadarSensor::UpdateSensor(
     header.frame_id = m_vessel_name + "/" + m_sensor_name;
 
     // ── Apply PSF ─────────────────────────────────────────────────────────
-    PSFResult result = SimulatePSF(points);
+    const PSFResult result = SimulatePSF(points);
 
     // ── Publish images  ────────────────────────────────────────────────────
     PublishImage(
@@ -282,8 +282,8 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
     std::vector<GridPt> gpts;
     gpts.reserve(points.size());
     for (const auto& p : points) {
-        float gx = std::round(-p[1] * scale + Gf * 0.5f);
-        float gy = std::round(p[0] * scale + Gf * 0.5f);
+        const float gx = std::round(-p[1] * scale + Gf * 0.5f);
+        const float gy = std::round(p[0] * scale + Gf * 0.5f);
         gpts.push_back({gx, gy});
     }
 
@@ -291,9 +291,9 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
     const float ef_h = static_cast<float>(m_psf.ellipse_height);
     const float rf = static_cast<float>(m_psf.range_factor);
 
-    for (std::size_t idx = 0; idx < gpts.size(); ++idx) {
-        const float gx = gpts[idx].gx;
-        const float gy = gpts[idx].gy;
+    for (auto& gpt : gpts) {
+        const float gx = gpt.gx;
+        const float gy = gpt.gy;
 
         const float dir_x = gx - radar_raw_x;
         const float dir_y = gy - radar_raw_y;
@@ -339,8 +339,8 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
     for (int dy = -5; dy <= 5; ++dy)
         for (int dx = -5; dx <= 5; ++dx) {
             if (dx * dx + dy * dy <= 25) {
-                int px = std::clamp(dot_x + dx, 0, G - 1);
-                int py = std::clamp(dot_y + dy, 0, G - 1);
+                const int px = std::clamp(dot_x + dx, 0, G - 1);
+                const int py = std::clamp(dot_y + dy, 0, G - 1);
                 radar_grid[py * G + px] = 2.0f;
                 lidar_grid[py * G + px] = 2.0f;
             }
@@ -357,7 +357,7 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
                 buf[i * 3 + 1] = 255;
                 buf[i * 3 + 2] = 0;
             } else {
-                uint8_t c = static_cast<uint8_t>(v * 255.0f);
+                const uint8_t c = static_cast<uint8_t>(v * 255.0f);
                 buf[i * 3 + 0] = c;  // B
                 buf[i * 3 + 1] = c;  // G
                 buf[i * 3 + 2] = c;  // R
@@ -375,7 +375,7 @@ RadarSensor::PSFResult RadarSensor::SimulatePSF(
 // PublishImage — pack BGR bytes into sensor_msgs::msg::Image
 // ═══════════════════════════════════════════════════════════════════════════
 void RadarSensor::PublishImage(
-    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
+    const rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr& pub,
     const std::vector<uint8_t>& bgr_data,
     int width,
     int height,

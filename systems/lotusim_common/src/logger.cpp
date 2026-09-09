@@ -168,7 +168,7 @@ std::filesystem::path createOrGetLogFolderPath()
     auto env_level = getLogLevelFromEnv();
     if (env_level >= spdlog::level::info) {
         auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        const std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         std::stringstream ss;
         ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d_%H-%M-%S");
         logs_dir /= ss.str();

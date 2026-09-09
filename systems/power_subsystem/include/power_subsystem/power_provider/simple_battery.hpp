@@ -38,8 +38,8 @@ public:
      * @param node   node from PowerManager
      */
     SimpleBattery(
-        const std::string& battery_name,
-        const std::string& vessel_name,
+        std::string battery_name,
+        std::string vessel_name,
         const sdf::ElementPtr& sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger);
