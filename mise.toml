@@ -82,6 +82,7 @@ arg "<world>" default="lotusim.world" help="A file in worlds/ of any assets root
 flag "--assets-path <path>" var=#true help="Extra assets roots, colon-separated and repeatable"
 flag "--gui" help="Open the Gazebo window instead of running headless"
 flag "--debug" help="Verbose gz and debug-level LOTUSim logs"
+flag "--asan" help="Preload AddressSanitizer (needed if the workspace was built with --asan)"
 '''
 run = '''
 if [ ! -f install/setup.bash ]; then
@@ -161,6 +162,21 @@ elif [ "${usage_gui:-false}" = "true" ]; then
   exit 1
 else
   echo "warning: no GPU driver bridge — camera and gpu_lidar sensors will not render." >&2
+fi
+
+# gz sim itself isn't ASan-instrumented; it only dlopen()s our plugins, so the
+# runtime must be preloaded here or it refuses to start ("does not come first
+# in initial library list").
+if [ "${usage_asan:-false}" = "true" ]; then
+  asan_lib=$(gcc -print-file-name=libasan.so)
+  if [ ! -f "$asan_lib" ]; then
+    echo "Could not locate libasan.so via 'gcc -print-file-name=libasan.so'." >&2
+    exit 1
+  fi
+  export LD_PRELOAD="$asan_lib${LD_PRELOAD:+:$LD_PRELOAD}"
+  # gz sim is a Ruby wrapper around the real simulator, so preloading also
+  # instruments the Ruby VM — suppress its known-noisy false-positive leaks.
+  export LSAN_OPTIONS="suppressions=${LOTUSIM_PATH}/scripts/asan_leak_suppressions.txt${LSAN_OPTIONS:+:$LSAN_OPTIONS}"
 fi
 
 exec $glwrap gz sim $verbosity $headless -r "$world_file"
