@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.22)
 
 project(physics_engine_interface VERSION 0.0.1 LANGUAGES CXX)
 
