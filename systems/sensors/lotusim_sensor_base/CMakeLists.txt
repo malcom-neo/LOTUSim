@@ -35,6 +35,13 @@ if(BUILD_PROFILING)
   add_compile_options(-pg -g -Og)
 endif()
 
+# AddressSanitizer
+if(LOTUS_ASAN)
+  message(STATUS "Building ${PROJECT_NAME} with AddressSanitizer enabled")
+  add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+  add_link_options(-fsanitize=address)
+endif()
+
 if(NOT DEFINED BUILD_SHARED_LIBS)
   option(BUILD_SHARED_LIBS "Build dynamically-linked binaries" ON)
 endif()

@@ -5,6 +5,13 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# AddressSanitizer
+if(LOTUS_ASAN)
+  message(STATUS "Building ${PROJECT_NAME} with AddressSanitizer enabled")
+  add_compile_options(-fsanitize=address -fno-omit-frame-pointer -g)
+  add_link_options(-fsanitize=address)
+endif()
+
 #============================================================================
 # Dependencies
 #============================================================================
