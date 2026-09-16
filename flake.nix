@@ -41,111 +41,24 @@
           inherit system;
           overlays = [ nix-ros-overlay.overlays.default ];
         };
-        ros = pkgs.rosPackages.jazzy;
 
-        # The nine Harmonic libraries LOTUSim's CMakeLists find_package directly.
-        # They resolve through the overlay's *-vendor packages, not nixpkgs proper.
-        gazeboHarmonic = with ros; [
-          gz-cmake-vendor
-          gz-common-vendor
-          gz-math-vendor
-          gz-msgs-vendor
-          gz-plugin-vendor
-          gz-rendering-vendor
-          gz-sensors-vendor
-          gz-sim-vendor
-          gz-transport-vendor
-          gz-utils-vendor
-          sdformat-vendor
-          # pulled in transitively but named here so a drop is loud, not silent
-          gz-fuel-tools-vendor
-          gz-tools-vendor
-        ];
+        # ROS 2 distros nix-ros-overlay ships a full Gazebo *-vendor set for —
+        # checked directly against the overlay rather than assumed: humble, for
+        # example, has no gz-sim-vendor here, so it's not in this list. CI builds
+        # the workspace under each of these to catch a distro/Gazebo pairing
+        # LOTUSim's CMakeLists can't actually satisfy.
+        rosDistros = [ "jazzy" "kilted" "lyrical" "rolling" ];
 
-        rosDeps = with ros; [
-          ament-cmake
-          ament-cmake-gtest
-          ament-lint-auto
-          ament-lint-common
-          action-msgs
-          backward-ros
-          builtin-interfaces
-          geographic-msgs
-          geometry-msgs
-          radar-msgs
-          rclcpp
-          rclcpp-action
-          rosidl-default-generators
-          rosidl-default-runtime
-          sensor-msgs
-          std-msgs
-          std-srvs
-        ];
-
-        # Boost comes from the overlay, not nixpkgs: Gazebo builds against the
-        # overlay's 1.89.0, and pulling nixpkgs' would put a second identical
-        # version in the closure for ~170 MB.
-        thirdParty = [ ros.boost ] ++ (with pkgs; [
-          eigen
-          nlohmann_json
-          readline
-          spdlog
-          websocketpp
-          yaml-cpp
-        ]);
-
-        # What the workspace derivation builds with, and so also what it carries
-        # in its build closure.
-        tooling = [
-          ros.ros-core
-          ros.ros2cli
-          pkgs.colcon
-          pkgs.cmake
-          pkgs.ninja
-          pkgs.pkg-config
-          pkgs.python3
-        ];
-
-        # Only the shell needs these. Keeping them out of tooling keeps them out
-        # of the workspace's build closure, and stops a change here from
-        # invalidating the build.
-        shellTooling = [
-          pkgs.mise
-          pkgs.usage
-          pkgs.nodejs_22
-          pkgs.doxygen
-          pkgs.clang-tools
-          (pkgs.runCommandLocal "run-clang-tidy" { } ''
-            mkdir -p $out/bin
-            ln -s ${pkgs.llvmPackages.clang-unwrapped}/bin/run-clang-tidy $out/bin/
-          '')
-          # docs/Doxyfile sets HAVE_DOT with an empty DOT_PATH, so doxygen
-          # resolves graphviz's dot from PATH.
-          pkgs.graphviz
-        ];
+        # jazzy + Harmonic is what the devShell, container image and docs target;
+        # the other distros in rosDistros only prove the workspace still builds.
+        primaryDistro = "jazzy";
 
         # colcon drives the whole workspace in one derivation rather than one
         # derivation per ROS package: the 17 packages share a single CMake
-        # invocation order that colcon already knows how to compute.
-        # What actually reaches CMake is ~1 MB of sources under systems/,
-        # interfaces/ and examples/. Feeding the whole tree in would
-        # copy assets/ (160 MB) into the store and make a
-        # README edit invalidate a four-minute build. Deny-list rather than
-        # allow-list, so a new package directory still builds by default.
-        workspaceSrc = pkgs.lib.cleanSourceWith {
-          name = "lotusim-workspace";
-          src = self;
-          filter = path: _type:
-            let
-              rel = pkgs.lib.removePrefix "${self}/" path;
-              top = builtins.head (pkgs.lib.splitString "/" rel);
-            in
-            !(builtins.elem top [ "assets" "docs" "scripts" ".github" ])
-            && !(pkgs.lib.hasSuffix ".md" rel)
-            && !(builtins.elem rel [ "flake.nix" "flake.lock" "mise.toml" ]);
-        };
-
-        colconWorkspace = { pname, src, buildInputs }: pkgs.stdenv.mkDerivation {
+        # invocation order that colcon already knows how to compute. Takes
+        # `tooling` rather than closing over it, so both a per-distro workspace
+        # and the distro-independent `messages` build can share it.
+        mkColconWorkspace = tooling: { pname, src, buildInputs }: pkgs.stdenv.mkDerivation {
           inherit pname src buildInputs;
           version = "0.1.1";
 
@@ -172,31 +85,23 @@
           dontInstall = true;
         };
 
-        workspace = colconWorkspace {
-          pname = "lotusim-workspace";
-          src = workspaceSrc;
-          buildInputs = rosDeps ++ gazeboHarmonic ++ thirdParty;
-        };
-
-        # What the UI backend gets: handing it ${workspace} would put 3.02 GB of Gazebo behind it.
-        messages = colconWorkspace {
-          pname = "lotusim-messages";
-          src = builtins.path {
-            path = self + "/interfaces";
-            name = "lotusim-interfaces";
-          };
-          buildInputs = with ros; [
-            ament-cmake
-            action-msgs
-            builtin-interfaces
-            geographic-msgs
-            geometry-msgs
-            rosidl-default-generators
-            rosidl-default-runtime
-            sensor-msgs
-            std-msgs
-            std-srvs
-          ];
+        # What actually reaches CMake is ~1 MB of sources under systems/,
+        # interfaces/ and examples/. Feeding the whole tree in would
+        # copy assets/ (160 MB) into the store and make a
+        # README edit invalidate a four-minute build. Deny-list rather than
+        # allow-list, so a new package directory still builds by default.
+        # Distro-independent: the same source tree builds under every distro.
+        workspaceSrc = pkgs.lib.cleanSourceWith {
+          name = "lotusim-workspace";
+          src = self;
+          filter = path: _type:
+            let
+              rel = pkgs.lib.removePrefix "${self}/" path;
+              top = builtins.head (pkgs.lib.splitString "/" rel);
+            in
+            !(builtins.elem top [ "assets" "docs" "scripts" ".github" ])
+            && !(pkgs.lib.hasSuffix ".md" rel)
+            && !(builtins.elem rel [ "flake.nix" "flake.lock" "mise.toml" ]);
         };
 
         # builtins.path narrows the dependency to assets/, so an edit elsewhere in the tree does not rebuild.
@@ -272,176 +177,302 @@
         # that would shadow Gazebo's on PATH.
         xdyn = lxdyn.packages.${system}.xdyn;
 
-        # The ROS and Gazebo setup hooks assemble GZ_CONFIG_PATH,
-        # AMENT_PREFIX_PATH, LD_LIBRARY_PATH and PYTHONPATH out of 11 to 133
-        # store paths each. Capturing them from a derivation that has the same
-        # inputs is exact; writing them out by hand would drift on every bump.
-        lotusim-env = pkgs.runCommand "lotusim-env"
-          {
-            nativeBuildInputs = [ pkgs.makeWrapper ];
-            buildInputs = rosDeps ++ gazeboHarmonic ++ thirdParty;
-            dontWrapQtApps = true;
-          } ''
-          # LD_LIBRARY_PATH composes: nixGL exports its mesa into it before exec-ing this.
-          makeWrapper ${ros.gz-tools-vendor}/bin/gz $out/bin/lotusim-env \
-            --add-flags sim \
-            --set GZ_CONFIG_PATH "$GZ_CONFIG_PATH" \
-            --set PYTHONPATH "$PYTHONPATH" \
-            --set AMENT_PREFIX_PATH "${workspace}:$AMENT_PREFIX_PATH" \
-            --prefix LD_LIBRARY_PATH : "${workspace}/lib:$LD_LIBRARY_PATH" \
-            --set GZ_SIM_SYSTEM_PLUGIN_PATH "${workspace}/lib" \
-            --set FASTDDS_BUILTIN_TRANSPORTS UDPv4
-        '';
+        # Everything that depends on which ROS distro/Gazebo pairing is picked.
+        # Same package names resolve under every distro in rosDistros — only the
+        # versions nix-ros-overlay attaches to `ros` change.
+        mkLotusimFor = rosDistro:
+          let
+            ros = pkgs.rosPackages.${rosDistro};
 
-        # `run` is the shape the old shell script had, kept because it says what it
-        # means; anything starting with a dash still goes straight to gz sim, which
-        # is what the container's default command relies on.
-        lotusim = pkgs.writeShellApplication {
-          name = "lotusim";
-          runtimeInputs = [ pkgs.coreutils ];
-          text = ''
-            ${stateHook}
+            # The nine Harmonic-shaped libraries LOTUSim's CMakeLists find_package
+            # directly. They resolve through the overlay's *-vendor packages, not
+            # nixpkgs proper. "Harmonic-shaped" because the vendor package names
+            # stay the same across distros even though the Gazebo release inside
+            # them (Harmonic, Ionic, ...) changes with rosDistro.
+            gazeboVendor = with ros; [
+              gz-cmake-vendor
+              gz-common-vendor
+              gz-math-vendor
+              gz-msgs-vendor
+              gz-plugin-vendor
+              gz-rendering-vendor
+              gz-sensors-vendor
+              gz-sim-vendor
+              gz-transport-vendor
+              gz-utils-vendor
+              sdformat-vendor
+              # pulled in transitively but named here so a drop is loud, not silent
+              gz-fuel-tools-vendor
+              gz-tools-vendor
+            ];
 
-            usage() {
-              cat <<USAGE
-            lotusim — the LOTUSim simulation server (Gazebo Harmonic)
+            rosDeps = with ros; [
+              ament-cmake
+              ament-cmake-gtest
+              ament-lint-auto
+              ament-lint-common
+              action-msgs
+              backward-ros
+              builtin-interfaces
+              geographic-msgs
+              geometry-msgs
+              radar-msgs
+              rclcpp
+              rclcpp-action
+              rosidl-default-generators
+              rosidl-default-runtime
+              sensor-msgs
+              std-msgs
+              std-srvs
+            ];
 
-            Usage:
-              lotusim run [--gui] [--debug] [<world>]    world defaults to lotusim.world
-              lotusim --help
+            # Boost comes from the overlay, not nixpkgs: Gazebo builds against the
+            # overlay's own version, and pulling nixpkgs' would put a second
+            # identical version in the closure for ~170 MB.
+            thirdParty = [ ros.boost ] ++ (with pkgs; [
+              eigen
+              nlohmann_json
+              readline
+              spdlog
+              websocketpp
+              yaml-cpp
+            ]);
 
-            Worlds are taken from $LOTUSIM_STATE_HOME/worlds first, then from this build:
-            $(for w in ${assets}/worlds/*.world; do echo "  $(basename "$w")"; done)
+            # What the workspace derivation builds with, and so also what it carries
+            # in its build closure.
+            tooling = [
+              ros.ros-core
+              ros.ros2cli
+              pkgs.colcon
+              pkgs.cmake
+              pkgs.ninja
+              pkgs.pkg-config
+              pkgs.python3
+            ];
 
-            Scenarios you create and models you upload are written to
-              $LOTUSIM_STATE_HOME
-            LOTUSIM_STATE_HOME moves all of it; GZ_SIM_RESOURCE_PATH,
-            LOTUSIM_MODELS_PATH, XDYN_ASSETS_PATH and LOTUSIM_SCENARIOS_PATH
-            override one at a time.
+            colconWorkspace = mkColconWorkspace tooling;
 
-            The web UI is its own entry point:
-              nix run github:naval-group/LOTUSim#ui      http://localhost:8080
+            workspace = colconWorkspace {
+              pname = "lotusim-workspace";
+              src = workspaceSrc;
+              buildInputs = rosDeps ++ gazeboVendor ++ thirdParty;
+            };
 
-            An argument starting with a dash goes straight to gz sim, options and all.
-            USAGE
-            }
+            # The ROS and Gazebo setup hooks assemble GZ_CONFIG_PATH,
+            # AMENT_PREFIX_PATH, LD_LIBRARY_PATH and PYTHONPATH out of 11 to 133
+            # store paths each. Capturing them from a derivation that has the same
+            # inputs is exact; writing them out by hand would drift on every bump.
+            lotusim-env = pkgs.runCommand "lotusim-env"
+              {
+                nativeBuildInputs = [ pkgs.makeWrapper ];
+                buildInputs = rosDeps ++ gazeboVendor ++ thirdParty;
+                dontWrapQtApps = true;
+              } ''
+              # LD_LIBRARY_PATH composes: nixGL exports its mesa into it before exec-ing this.
+              makeWrapper ${ros.gz-tools-vendor}/bin/gz $out/bin/lotusim-env \
+                --add-flags sim \
+                --set GZ_CONFIG_PATH "$GZ_CONFIG_PATH" \
+                --set PYTHONPATH "$PYTHONPATH" \
+                --set AMENT_PREFIX_PATH "${workspace}:$AMENT_PREFIX_PATH" \
+                --prefix LD_LIBRARY_PATH : "${workspace}/lib:$LD_LIBRARY_PATH" \
+                --set GZ_SIM_SYSTEM_PLUGIN_PATH "${workspace}/lib" \
+                --set FASTDDS_BUILTIN_TRANSPORTS UDPv4
+            '';
 
-            # A nix-built binary cannot reach a non-NixOS host's GPU driver. The
-            # window needs it, and so does every rendering sensor — camera,
-            # gpu_lidar — which gz implements by rendering the scene.
-            glwrap=()
-            gl_bridge() {
-              glwrap=()
-              local wrapper
-              if wrapper=$(${pkgs.bash}/bin/bash ${glWrapper}); then
-                if [ -n "$wrapper" ]; then glwrap=("$wrapper"); fi
-                return 0
-              fi
-              return 1
-            }
+            # `run` is the shape the old shell script had, kept because it says what it
+            # means; anything starting with a dash still goes straight to gz sim, which
+            # is what the container's default command relies on.
+            lotusim = pkgs.writeShellApplication {
+              name = "lotusim";
+              runtimeInputs = [ pkgs.coreutils ];
+              text = ''
+                ${stateHook}
 
-            no_bridge_warning="warning: no GPU driver bridge — camera and gpu_lidar sensors will not render."
+                usage() {
+                  cat <<USAGE
+                lotusim — the LOTUSim simulation server (Gazebo Harmonic)
 
-            case "''${1:-}" in
-              "" | -h | --help)
-                usage
-                exit 0
-                ;;
-              ui)
-                echo "The UI is its own entry point, and is not in this command's closure:" >&2
-                echo "  nix run github:naval-group/LOTUSim#ui" >&2
-                exit 1
-                ;;
-              build)
-                echo "Building needs a clone: nix develop, then mise run build." >&2
-                exit 1
-                ;;
-              run)
-                shift
-                ;;
-              -*)
-                gl_bridge || echo "$no_bridge_warning" >&2
-                exec "''${glwrap[@]}" ${lotusim-env}/bin/lotusim-env "$@"
-                ;;
-              *)
-                echo "lotusim: unknown command '$1'" >&2
-                usage >&2
-                exit 1
-                ;;
-            esac
+                Usage:
+                  lotusim run [--gui] [--debug] [<world>]    world defaults to lotusim.world
+                  lotusim --help
 
-            gui=false
-            debug=false
-            while [ $# -gt 0 ]; do
-              case "$1" in
-                --gui) gui=true; shift ;;
-                --debug) debug=true; shift ;;
-                -*) echo "lotusim run: unknown option '$1'" >&2; exit 1 ;;
-                *) break ;;
-              esac
-            done
+                Worlds are taken from $LOTUSIM_STATE_HOME/worlds first, then from this build:
+                $(for w in ${assets}/worlds/*.world; do echo "  $(basename "$w")"; done)
 
-            world="''${1:-lotusim.world}"
-            world_file=""
-            for root in "$LOTUSIM_STATE_HOME" "${assets}"; do
-              if [ -f "$root/worlds/$world" ]; then
-                world_file="$root/worlds/$world"
-                break
-              fi
-            done
-            if [ -z "$world_file" ]; then
-              echo "lotusim: world '$world' is in neither $LOTUSIM_STATE_HOME/worlds nor this build." >&2
-              exit 1
-            fi
+                Scenarios you create and models you upload are written to
+                  $LOTUSIM_STATE_HOME
+                LOTUSIM_STATE_HOME moves all of it; GZ_SIM_RESOURCE_PATH,
+                LOTUSIM_MODELS_PATH, XDYN_ASSETS_PATH and LOTUSIM_SCENARIOS_PATH
+                override one at a time.
 
-            if [ "$gui" = true ]; then
-              if [ -z "''${WAYLAND_DISPLAY:-}" ] && [ -z "''${DISPLAY:-}" ]; then
-                echo "--gui needs a graphical session: neither WAYLAND_DISPLAY nor DISPLAY is set." >&2
-                exit 1
-              fi
-              headless=()
-            else
-              # gz sim -s is server-only; dropping it is what opens the window.
-              headless=(-s)
-            fi
+                The web UI is its own entry point:
+                  nix run github:naval-group/LOTUSim#ui      http://localhost:8080
 
-            if [ "$debug" = true ]; then
-              verbosity=-v4
-              export LOTUSIM_SPDLOG_LEVEL=debug
-            else
-              verbosity=-v1
-            fi
+                An argument starting with a dash goes straight to gz sim, options and all.
+                USAGE
+                }
 
-            if ! gl_bridge; then
-              if [ "$gui" = true ]; then
-                # gz exits 0 when the GUI aborts, so refuse now.
-                echo "No GPU driver bridge — the GUI cannot reach a driver." >&2
-                echo "  nix profile add github:nix-community/nixGL#nixGLIntel" >&2
-                exit 1
-              fi
-              echo "$no_bridge_warning" >&2
-            fi
+                # A nix-built binary cannot reach a non-NixOS host's GPU driver. The
+                # window needs it, and so does every rendering sensor — camera,
+                # gpu_lidar — which gz implements by rendering the scene.
+                glwrap=()
+                gl_bridge() {
+                  glwrap=()
+                  local wrapper
+                  if wrapper=$(${pkgs.bash}/bin/bash ${glWrapper}); then
+                    if [ -n "$wrapper" ]; then glwrap=("$wrapper"); fi
+                    return 0
+                  fi
+                  return 1
+                }
 
-            exec "''${glwrap[@]}" ${lotusim-env}/bin/lotusim-env \
-              "$verbosity" "''${headless[@]}" -r "$world_file"
-          '';
-        };
+                no_bridge_warning="warning: no GPU driver bridge — camera and gpu_lidar sensors will not render."
 
-        # streamLayeredImage builds a script that writes the image to stdout,
-        # so the ~1 GB archive is never materialised on disk — `./result | docker
-        # load`. Layering still separates the gz runtime, which is the bulk of
-        # the image, from the workspace on top, which changes far more often.
-        container = pkgs.dockerTools.streamLayeredImage {
-          name = "lotusim";
-          tag = "latest";
-          contents = [ lotusim pkgs.bashInteractive pkgs.coreutils ];
-          config = {
-            # gz writes its log under $HOME and warns it cannot without one.
-            Env = [ "HOME=/tmp" ];
-            WorkingDir = "/tmp";
-            Entrypoint = [ "/bin/lotusim" ];
-            Cmd = [ "run" ];
+                case "''${1:-}" in
+                  "" | -h | --help)
+                    usage
+                    exit 0
+                    ;;
+                  ui)
+                    echo "The UI is its own entry point, and is not in this command's closure:" >&2
+                    echo "  nix run github:naval-group/LOTUSim#ui" >&2
+                    exit 1
+                    ;;
+                  build)
+                    echo "Building needs a clone: nix develop, then mise run build." >&2
+                    exit 1
+                    ;;
+                  run)
+                    shift
+                    ;;
+                  -*)
+                    gl_bridge || echo "$no_bridge_warning" >&2
+                    exec "''${glwrap[@]}" ${lotusim-env}/bin/lotusim-env "$@"
+                    ;;
+                  *)
+                    echo "lotusim: unknown command '$1'" >&2
+                    usage >&2
+                    exit 1
+                    ;;
+                esac
+
+                gui=false
+                debug=false
+                while [ $# -gt 0 ]; do
+                  case "$1" in
+                    --gui) gui=true; shift ;;
+                    --debug) debug=true; shift ;;
+                    -*) echo "lotusim run: unknown option '$1'" >&2; exit 1 ;;
+                    *) break ;;
+                  esac
+                done
+
+                world="''${1:-lotusim.world}"
+                world_file=""
+                for root in "$LOTUSIM_STATE_HOME" "${assets}"; do
+                  if [ -f "$root/worlds/$world" ]; then
+                    world_file="$root/worlds/$world"
+                    break
+                  fi
+                done
+                if [ -z "$world_file" ]; then
+                  echo "lotusim: world '$world' is in neither $LOTUSIM_STATE_HOME/worlds nor this build." >&2
+                  exit 1
+                fi
+
+                if [ "$gui" = true ]; then
+                  if [ -z "''${WAYLAND_DISPLAY:-}" ] && [ -z "''${DISPLAY:-}" ]; then
+                    echo "--gui needs a graphical session: neither WAYLAND_DISPLAY nor DISPLAY is set." >&2
+                    exit 1
+                  fi
+                  headless=()
+                else
+                  # gz sim -s is server-only; dropping it is what opens the window.
+                  headless=(-s)
+                fi
+
+                if [ "$debug" = true ]; then
+                  verbosity=-v4
+                  export LOTUSIM_SPDLOG_LEVEL=debug
+                else
+                  verbosity=-v1
+                fi
+
+                if ! gl_bridge; then
+                  if [ "$gui" = true ]; then
+                    # gz exits 0 when the GUI aborts, so refuse now.
+                    echo "No GPU driver bridge — the GUI cannot reach a driver." >&2
+                    echo "  nix profile add github:nix-community/nixGL#nixGLIntel" >&2
+                    exit 1
+                  fi
+                  echo "$no_bridge_warning" >&2
+                fi
+
+                exec "''${glwrap[@]}" ${lotusim-env}/bin/lotusim-env \
+                  "$verbosity" "''${headless[@]}" -r "$world_file"
+              '';
+            };
+
+            # streamLayeredImage builds a script that writes the image to stdout,
+            # so the ~1 GB archive is never materialised on disk — `./result | docker
+            # load`. Layering still separates the gz runtime, which is the bulk of
+            # the image, from the workspace on top, which changes far more often.
+            container = pkgs.dockerTools.streamLayeredImage {
+              name = "lotusim";
+              tag = "latest";
+              contents = [ lotusim pkgs.bashInteractive pkgs.coreutils ];
+              config = {
+                # gz writes its log under $HOME and warns it cannot without one.
+                Env = [ "HOME=/tmp" ];
+                WorkingDir = "/tmp";
+                Entrypoint = [ "/bin/lotusim" ];
+                Cmd = [ "run" ];
+              };
+            };
+          in
+          { inherit ros gazeboVendor rosDeps thirdParty tooling workspace lotusim-env lotusim container; };
+
+        distroOutputs = pkgs.lib.genAttrs rosDistros mkLotusimFor;
+        primary = distroOutputs.${primaryDistro};
+
+        # Only the shell needs these. Keeping them out of tooling keeps them out
+        # of the workspace's build closure, and stops a change here from
+        # invalidating the build.
+        shellTooling = [
+          pkgs.mise
+          pkgs.usage
+          pkgs.nodejs_22
+          pkgs.doxygen
+          pkgs.clang-tools
+          (pkgs.runCommandLocal "run-clang-tidy" { } ''
+            mkdir -p $out/bin
+            ln -s ${pkgs.llvmPackages.clang-unwrapped}/bin/run-clang-tidy $out/bin/
+          '')
+          # docs/Doxyfile sets HAVE_DOT with an empty DOT_PATH, so doxygen
+          # resolves graphviz's dot from PATH.
+          pkgs.graphviz
+        ];
+
+        # What the UI backend gets: handing it ${primary.workspace} would put 3.02 GB of Gazebo behind it.
+        # Tied to primaryDistro only — the UI backend flake isn't part of the ROS/Gazebo matrix.
+        messages = mkColconWorkspace primary.tooling {
+          pname = "lotusim-messages";
+          src = builtins.path {
+            path = self + "/interfaces";
+            name = "lotusim-interfaces";
           };
+          buildInputs = with primary.ros; [
+            ament-cmake
+            action-msgs
+            builtin-interfaces
+            geographic-msgs
+            geometry-msgs
+            rosidl-default-generators
+            rosidl-default-runtime
+            sensor-msgs
+            std-msgs
+            std-srvs
+          ];
         };
 
         ui-backend-unwrapped = lotusim-ui-backend.lib.mkBackend {
@@ -470,16 +501,33 @@
         };
       in
       {
-        packages = {
-          inherit lotusim workspace messages container ui-backend ui-frontend ui;
-          assets = assetsPackage;
-          default = lotusim;
-        };
+        packages =
+          # One {distro}-workspace / {distro}-lotusim / {distro}-container triple
+          # per entry in rosDistros, so CI can build ".#${{ matrix.ros-distro }}-workspace"
+          # without the workflow needing to know the distro list itself.
+          (pkgs.lib.concatMapAttrs
+            (rosDistro: out: {
+              "${rosDistro}-workspace" = out.workspace;
+              "${rosDistro}-lotusim" = out.lotusim;
+              "${rosDistro}-container" = out.container;
+            })
+            distroOutputs)
+          // {
+            # Unprefixed names stay aliases of primaryDistro, so existing
+            # `nix build .#lotusim` / `.#container` usage (docs, this CI's main
+            # job) is unaffected by the matrix's addition.
+            lotusim = primary.lotusim;
+            workspace = primary.workspace;
+            container = primary.container;
+            inherit messages ui-backend ui-frontend ui;
+            assets = assetsPackage;
+            default = primary.lotusim;
+          };
 
         apps = {
           default = {
             type = "app";
-            program = "${lotusim}/bin/lotusim";
+            program = "${primary.lotusim}/bin/lotusim";
           };
 
           ui-backend = {
@@ -506,7 +554,7 @@
 
         devShells.default = pkgs.mkShell {
           name = "lotusim";
-          packages = tooling ++ shellTooling ++ rosDeps ++ gazeboHarmonic ++ thirdParty ++ [ xdyn ];
+          packages = primary.tooling ++ shellTooling ++ primary.rosDeps ++ primary.gazeboVendor ++ primary.thirdParty ++ [ xdyn ];
 
           # colcon defaults to make; ninja is what gets the workspace to ~2 min.
           shellHook = ''
