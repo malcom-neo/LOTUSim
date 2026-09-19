@@ -19,16 +19,28 @@ FASTDDS_BUILTIN_TRANSPORTS = "UDPv4"
 description = "Build the colcon workspace"
 dir = "{{config_root}}"
 shell = "bash -c"
-usage = 'flag "--debug" help="Build with DEBUG=ON and a symlinked install"'
+usage = '''
+flag "--debug" help="Build with DEBUG=ON and a symlinked install"
+flag "--asan" help="Build with LOTUS_ASAN=ON (AddressSanitizer)"
+'''
 run = '''
+cmake_args=(-DCMAKE_EXPORT_COMPILE_COMMANDS=ON)
+event_handlers=(compile_commands+)
+extra_colcon_args=()
+
 if [ "${usage_debug:-false}" = "true" ]; then
-  colcon --log-level error build --merge-install --symlink-install \
-    --event-handlers compile_commands+ console_cohesion+ \
-    --cmake-args -DDEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-else
-  colcon --log-level error build --merge-install --event-handlers compile_commands+ \
-    --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  cmake_args+=(-DDEBUG=ON)
+  extra_colcon_args+=(--symlink-install)
+  event_handlers+=(console_cohesion+)
 fi
+
+if [ "${usage_asan:-false}" = "true" ]; then
+  cmake_args+=(-DLOTUS_ASAN=ON)
+fi
+
+colcon --log-level error build --merge-install "${extra_colcon_args[@]}" \
+  --event-handlers "${event_handlers[@]}" \
+  --cmake-args "${cmake_args[@]}"
 '''
 
 [tasks.clean]
@@ -70,6 +82,7 @@ arg "<world>" default="lotusim.world" help="A file in worlds/ of any assets root
 flag "--assets-path <path>" var=#true help="Extra assets roots, colon-separated and repeatable"
 flag "--gui" help="Open the Gazebo window instead of running headless"
 flag "--debug" help="Verbose gz and debug-level LOTUSim logs"
+flag "--asan" help="Preload AddressSanitizer (needed if the workspace was built with --asan)"
 '''
 run = '''
 if [ ! -f install/setup.bash ]; then
@@ -149,6 +162,21 @@ elif [ "${usage_gui:-false}" = "true" ]; then
   exit 1
 else
   echo "warning: no GPU driver bridge — camera and gpu_lidar sensors will not render." >&2
+fi
+
+# gz sim itself isn't ASan-instrumented; it only dlopen()s our plugins, so the
+# runtime must be preloaded here or it refuses to start ("does not come first
+# in initial library list").
+if [ "${usage_asan:-false}" = "true" ]; then
+  asan_lib=$(gcc -print-file-name=libasan.so)
+  if [ ! -f "$asan_lib" ]; then
+    echo "Could not locate libasan.so via 'gcc -print-file-name=libasan.so'." >&2
+    exit 1
+  fi
+  export LD_PRELOAD="$asan_lib${LD_PRELOAD:+:$LD_PRELOAD}"
+  # gz sim is a Ruby wrapper around the real simulator, so preloading also
+  # instruments the Ruby VM — suppress its known-noisy false-positive leaks.
+  export LSAN_OPTIONS="suppressions=${LOTUSIM_PATH}/scripts/asan_leak_suppressions.txt${LSAN_OPTIONS:+:$LSAN_OPTIONS}"
 fi
 
 exec $glwrap gz sim $verbosity $headless -r "$world_file"

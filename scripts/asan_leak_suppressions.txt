@@ -1,0 +1,12 @@
+# LeakSanitizer suppressions for `mise run sim --asan`.
+#
+# `gz sim` is itself a Ruby CLI wrapper that execs the real simulator, so
+# LD_PRELOAD-ing libasan also instruments the Ruby VM. Ruby's GC intentionally
+# keeps VM-internal heap allocations alive for the life of the interpreter (and
+# doesn't always free them at process exit) — LeakSanitizer reports these as
+# leaks even though it's normal interpreter behavior, not a bug in our plugins.
+# All Ruby-heap allocations funnel through these entry points, so suppressing
+# here filters the noise without hiding real leaks in our own code.
+leak:ruby_xmalloc
+leak:ruby_xcalloc
+leak:ruby_xrealloc
