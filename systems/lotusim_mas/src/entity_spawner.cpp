@@ -19,6 +19,7 @@
 #include <gz/sim/components/ParentEntity.hh>
 #include <gz/sim/components/Pose.hh>
 #include <sdf/Root.hh>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 
@@ -32,7 +33,7 @@ EntitySpawner::EntitySpawner(
     : m_logger{std::move(logger)}
     , m_ecm{ecm}
     , m_world_entity{world_entity}
-    , m_creator{creator}
+    , m_creator{std::move(creator)}
 {
 }
 
@@ -66,10 +67,15 @@ std::optional<std::tuple<uint16_t, std::string>> EntitySpawner::addEntity(
 
             // Use the provided sdf_file inside the model folder.
             // If empty, default to "model.sdf".
-            std::string sdf_filename = msg.sdf_file.empty() ? "model.sdf" : msg.sdf_file;
-            m_logger->info("EntitySpawner::addEntity: using sdf_file='{}' for model='{}'", sdf_filename, msg.model_name);
+            std::string sdf_filename =
+                msg.sdf_file.empty() ? "model.sdf" : msg.sdf_file;
+            m_logger->info(
+                "EntitySpawner::addEntity: using sdf_file='{}' for model='{}'",
+                sdf_filename,
+                msg.model_name);
             const std::string file_path_sdf = (file_path + "/" + sdf_filename);
-            if (sdf_doc.LoadFile(file_path_sdf.c_str()) != tinyxml2::XML_SUCCESS) {
+            if (sdf_doc.LoadFile(file_path_sdf.c_str()) !=
+                tinyxml2::XML_SUCCESS) {
                 m_logger->error(
                     "EntitySpawner::addEntity: Failed to load SDF file '{}'",
                     file_path_sdf);
@@ -95,7 +101,7 @@ std::optional<std::tuple<uint16_t, std::string>> EntitySpawner::addEntity(
 
             tinyxml2::XMLDocument lotus_doc;
             lotus_doc.Parse(msg.sdf_string.c_str());
-            tinyxml2::XMLElement* lotus_elem =
+            const tinyxml2::XMLElement* lotus_elem =
                 lotus_doc.FirstChildElement("lotus_param");
             if (!lotus_elem) {
                 m_logger->error(
@@ -104,8 +110,9 @@ std::optional<std::tuple<uint16_t, std::string>> EntitySpawner::addEntity(
                 return std::nullopt;
             }
 
-            model_elem->InsertEndChild(static_cast<tinyxml2::XMLElement*>(
-                lotus_elem->DeepClone(&sdf_doc)));
+            model_elem->InsertEndChild(
+                static_cast<tinyxml2::XMLElement*>(
+                    lotus_elem->DeepClone(&sdf_doc)));
 
             tinyxml2::XMLPrinter printer;
             sdf_doc.Print(&printer);
@@ -180,7 +187,7 @@ bool EntitySpawner::moveEntity(const lotusim_msgs::msg::MASCmd& msg)
         if (msg.entity) {
             vessel_entity = msg.entity;
         } else if (!msg.vessel_name.empty()) {
-            std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
+            const std::shared_lock<std::shared_mutex> lock(m_variable_mutex);
             auto it = m_vessels_entities.find(msg.vessel_name);
             if (it != m_vessels_entities.end())
                 vessel_entity = it->second;
@@ -261,7 +268,7 @@ bool EntitySpawner::deleteEntity(const lotusim_msgs::msg::MASCmd& msg)
     try {
         gz::sim::Entity vessel_entity = gz::sim::kNullEntity;
         {
-            std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+            const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
 
             if (msg.entity) {
                 vessel_entity = msg.entity;
@@ -304,7 +311,7 @@ bool EntitySpawner::deleteEntity(const lotusim_msgs::msg::MASCmd& msg)
 
 void EntitySpawner::deleteAllEntities()
 {
-    std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
 
     for (auto& [entity, name] : m_vessels_names) {
         m_creator->RequestRemoveEntity(entity);
@@ -320,7 +327,7 @@ void EntitySpawner::registerNewEntity(
     const std::string& name)
 {
     {
-        std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+        const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
         m_vessels_entities[name] = entity;
         m_vessels_names[entity] = name;
     }
@@ -334,7 +341,7 @@ void EntitySpawner::registerNewEntity(
             m_ecm.Component<gz::sim::components::Name>(link_entity);
         if (name_comp &&
             name_comp->Data().find("base_link") != std::string::npos) {
-            gz::sim::Link link(link_entity);
+            const gz::sim::Link link(link_entity);
             link.EnableVelocityChecks(m_ecm);
             break;
         }
@@ -348,7 +355,7 @@ void EntitySpawner::registerNewEntity(
 
 void EntitySpawner::unregisterEntity(gz::sim::Entity entity)
 {
-    std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
+    const std::unique_lock<std::shared_mutex> lock(m_variable_mutex);
 
     auto it = m_vessels_names.find(entity);
     if (it == m_vessels_names.end())

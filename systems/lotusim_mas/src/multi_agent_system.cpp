@@ -164,7 +164,7 @@ void MultiAgentSystem::PreUpdate(
     {
         std::vector<std::shared_ptr<GoalHandleMASCmdArray>> tmp_vec;
         {
-            std::lock_guard<std::mutex> lock(m_cmds_array_mutex);
+            const std::scoped_lock lock(m_cmds_array_mutex);
             tmp_vec = m_mas_cmds_array;
             m_mas_cmds_array.clear();
         }
@@ -197,7 +197,7 @@ void MultiAgentSystem::PreUpdate(
     {
         std::vector<std::shared_ptr<GoalHandleMASCmd>> tmp_vec;
         {
-            std::lock_guard<std::mutex> lock(m_cmds_mutex);
+            const std::scoped_lock lock(m_cmds_mutex);
             tmp_vec = m_mas_cmds;
             m_mas_cmds.clear();
         }
@@ -351,7 +351,7 @@ void MultiAgentSystem::PostUpdate(
 
 rclcpp_action::GoalResponse MultiAgentSystem::handleMASCmdArrayGoal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal>)
+    const std::shared_ptr<const lotusim_msgs::action::MASCmdArray::Goal>&)
 {
     m_logger->info(
         "MultiAgentSystem::handleMASCmdArrayGoal: Received MASCmdArray.");
@@ -359,38 +359,38 @@ rclcpp_action::GoalResponse MultiAgentSystem::handleMASCmdArrayGoal(
 }
 
 rclcpp_action::CancelResponse MultiAgentSystem::handleMASCmdArrayCancel(
-    const std::shared_ptr<GoalHandleMASCmdArray>)
+    const std::shared_ptr<GoalHandleMASCmdArray>&)
 {
     // Not allowed to cancel for now
     return rclcpp_action::CancelResponse::REJECT;
 }
 
 void MultiAgentSystem::handleMASCmdArrayAccepted(
-    const std::shared_ptr<GoalHandleMASCmdArray> goal_handle)
+    const std::shared_ptr<GoalHandleMASCmdArray>& goal_handle)
 {
-    std::lock_guard<std::mutex> lock(m_cmds_array_mutex);
+    const std::scoped_lock lock(m_cmds_array_mutex);
     m_mas_cmds_array.push_back(goal_handle);
 }
 
 rclcpp_action::GoalResponse MultiAgentSystem::handleMASCmdGoal(
     const rclcpp_action::GoalUUID&,
-    std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal>)
+    const std::shared_ptr<const lotusim_msgs::action::MASCmd::Goal>&)
 {
     m_logger->info("MultiAgentSystem::handleMASCmdGoal: Received MASCmd.");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse MultiAgentSystem::handleMASCmdCancel(
-    const std::shared_ptr<GoalHandleMASCmd>)
+    const std::shared_ptr<GoalHandleMASCmd>&)
 {
     // Not allowed to cancel for now
     return rclcpp_action::CancelResponse::REJECT;
 }
 
 void MultiAgentSystem::handleMASCmdAccepted(
-    const std::shared_ptr<GoalHandleMASCmd> goal_handle)
+    const std::shared_ptr<GoalHandleMASCmd>& goal_handle)
 {
-    std::lock_guard<std::mutex> lock(m_cmds_mutex);
+    const std::scoped_lock lock(m_cmds_mutex);
     m_mas_cmds.push_back(goal_handle);
 }
 
@@ -471,7 +471,7 @@ bool MultiAgentSystem::isValidRosName(const std::string& name)
         return false;
     if (std::isdigit(static_cast<unsigned char>(name.front())))
         return false;
-    for (char c : name) {
+    for (const char c : name) {
         if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_') {
             return false;
         }

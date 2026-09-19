@@ -19,7 +19,7 @@ PowerProvider::CreateResult PowerProvider::createFromSdf(
     const std::string& vessel_name,
     const sdf::ElementPtr& sdf,
     rclcpp::Node::SharedPtr node,
-    std::shared_ptr<spdlog::logger> logger)
+    const std::shared_ptr<spdlog::logger>& logger)
 {
     if (!sdf->HasElement("type")) {
         if (logger)
@@ -28,7 +28,7 @@ PowerProvider::CreateResult PowerProvider::createFromSdf(
                 "but missing required <type> -> skipping",
                 provider_name,
                 vessel_name);
-        return {nullptr, ProviderType::Unknown};
+        return {.provider = nullptr, .type = ProviderType::Unknown};
     }
 
     std::string providerTypeStr = sdf->Get<std::string>("type", "").first;
@@ -40,53 +40,53 @@ PowerProvider::CreateResult PowerProvider::createFromSdf(
             providerTypeStr,
             provider_name,
             vessel_name);
-        return {nullptr, ProviderType::Unknown};
+        return {.provider = nullptr, .type = ProviderType::Unknown};
     }
 
     switch (*typeOpt) {
         case ProviderType::SimpleBattery:
             return {
-                std::make_shared<SimpleBattery>(
+                .provider = std::make_shared<SimpleBattery>(
                     provider_name,
                     vessel_name,
                     sdf,
                     std::move(node),
                     logger),
-                ProviderType::SimpleBattery};
+                .type = ProviderType::SimpleBattery};
 
         case ProviderType::SimpleGenerator:
             return {
-                std::make_shared<SimpleGenerator>(
+                .provider = std::make_shared<SimpleGenerator>(
                     provider_name,
                     vessel_name,
                     sdf,
                     std::move(node),
                     logger),
-                ProviderType::SimpleGenerator};
+                .type = ProviderType::SimpleGenerator};
 
         case ProviderType::RPMGenerator:
             return {
-                std::make_shared<RpmGenerator>(
+                .provider = std::make_shared<RpmGenerator>(
                     provider_name,
                     vessel_name,
                     sdf,
                     std::move(node),
                     logger),
-                ProviderType::RPMGenerator};
+                .type = ProviderType::RPMGenerator};
         default:
             logger->error(
                 "PowerProvider::createFromSdf: unknown type '{}' for [{},{}] -> skipping",
                 providerTypeStr,
                 provider_name,
                 vessel_name);
-            return {nullptr, ProviderType::Unknown};
+            return {.provider = nullptr, .type = ProviderType::Unknown};
     }
     logger->error(
         "PowerProvider::createFromSdf: unknown type '{}' for [{},{}] -> skipping",
         providerTypeStr,
         provider_name,
         vessel_name);
-    return {nullptr, ProviderType::Unknown};
+    return {.provider = nullptr, .type = ProviderType::Unknown};
 }
 
 }  // namespace lotusim::gazebo

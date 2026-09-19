@@ -21,7 +21,7 @@ spdlog::level::level_enum getLogLevelFromEnv()
     std::string level_str(env_level);
     // Convert to uppercase for case-insensitive comparison
     for (auto& c : level_str)
-        c = std::toupper(c);
+        c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
     if (level_str == "TRACE")
         return spdlog::level::trace;
@@ -39,7 +39,7 @@ spdlog::level::level_enum getLogLevelFromEnv()
         return spdlog::level::off;
 
     std::cerr << "Invalid LOTUSIM_LOG_LEVEL: " << env_level
-              << ". Using default level." << std::endl;
+              << ". Using default level." << '\n';
     return DEFAULT_LOG_LEVEL;
 }
 
@@ -168,7 +168,7 @@ std::filesystem::path createOrGetLogFolderPath()
     auto env_level = getLogLevelFromEnv();
     if (env_level >= spdlog::level::info) {
         auto now = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        const std::time_t now_c = std::chrono::system_clock::to_time_t(now);
         std::stringstream ss;
         ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d_%H-%M-%S");
         logs_dir /= ss.str();

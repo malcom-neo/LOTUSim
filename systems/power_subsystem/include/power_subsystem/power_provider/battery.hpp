@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include <utility>
+
 #include "power_subsystem/power_provider/power_provider.hpp"
 
 namespace lotusim::gazebo {
@@ -33,7 +35,7 @@ namespace lotusim::gazebo {
  */
 class Battery : public PowerProvider {
 public:
-    virtual ~Battery() = default;
+    ~Battery() override = default;
     // ----------------------------------------------------------------
     // PowerProvider interface —> implemented here for all batteries
     // ----------------------------------------------------------------
@@ -125,8 +127,8 @@ protected:
      * @param voltage_min  depletion voltage from SDF voltage_min (V)
      */
     Battery(
-        const std::string& battery_name,
-        const std::string& vessel_name,
+        std::string battery_name,
+        std::string vessel_name,
         const sdf::ElementPtr& sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)
@@ -135,7 +137,7 @@ protected:
               std::move(vessel_name),
               sdf,
               std::move(node),
-              logger)
+              std::move(logger))
     {
         m_capacityAh = sdf->Get<float>("capacity_ah", 100.0f).first;
         m_initialSoc = sdf->Get<float>("initial_soc", 1.0f).first;

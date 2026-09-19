@@ -29,17 +29,17 @@ public:
         rclcpp::Node::SharedPtr node,
         const gz::sim::Entity& vessel_entity,
         const gz::sim::Entity& sensor_entity,
-        const std::string& parent_name,
-        const std::string& sensor_name);
+        std::string parent_name,
+        std::string sensor_name);
 
-    ~AISSensor();
+    ~AISSensor() override;
 
-    virtual bool UpdateSensor(
+    bool UpdateSensor(
         const gz::sim::UpdateInfo& _info,
         const gz::sim::EntityComponentManager& _ecm) final;
 
 private:
-    virtual bool CustomSensorLoad(const sdf::Sensor& _sdf) final;
+    bool CustomSensorLoad(const sdf::Sensor& _sdf) final;
 
 private:
     // Sensor params

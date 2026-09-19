@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <std_msgs/msg/float32.hpp>
+#include <utility>
 
 #include "power_subsystem/power_consumer/power_consumer.hpp"
 
@@ -37,8 +38,8 @@ public:
      * @param _ecm       Gazebo EntityComponentManager
      */
     ThrusterPowerConsumer(
-        const std::string& consumer_name,
-        const std::string& vessel_name,
+        std::string consumer_name,
+        std::string vessel_name,
         const sdf::ElementPtr& _sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)
@@ -47,7 +48,7 @@ public:
               std::move(vessel_name),
               _sdf,
               std::move(node),
-              logger)
+              std::move(logger))
     {
         m_maxRpm = _sdf->Get<float>("max_rpm", 1000.0f).first;
         // subscribe to rpm command
@@ -57,7 +58,7 @@ public:
         m_rpmSub = m_node->create_subscription<std_msgs::msg::Float32>(
             topic,
             rclcpp::QoS(10),
-            [this](const std_msgs::msg::Float32::SharedPtr msg) {
+            [this](const std_msgs::msg::Float32::ConstSharedPtr& msg) {
                 // ignore RPM commands while deactivated
                 if (!isActive()) {
                     return;

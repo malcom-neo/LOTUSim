@@ -22,11 +22,11 @@ shell = "bash -c"
 usage = 'flag "--debug" help="Build with DEBUG=ON and a symlinked install"'
 run = '''
 if [ "${usage_debug:-false}" = "true" ]; then
-  colcon build --merge-install --symlink-install \
-    --event-handlers compile_commands+ \
+  colcon --log-level error build --merge-install --symlink-install \
+    --event-handlers compile_commands+ console_cohesion+ \
     --cmake-args -DDEBUG=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 else
-  colcon build --merge-install --event-handlers compile_commands+ \
+  colcon --log-level error build --merge-install --event-handlers compile_commands+ \
     --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 '''
@@ -164,6 +164,28 @@ if [ ! -f build/compile_commands.json ]; then
   exit 1
 fi
 run-clang-tidy -p build "systems/" "interfaces/" "examples/"
+'''
+
+[tasks."lint:format"]
+description = "Check (or apply) clang-format over the workspace sources"
+dir = "{{config_root}}"
+shell = "bash -c"
+usage = 'flag "--fix" help="Rewrite files in place instead of only reporting"'
+run = '''
+set -euo pipefail
+mapfile -t sources < <(
+  find systems interfaces examples \
+    -type f \( -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.hh' \)
+)
+if [ -z "${sources[*]}" ]; then
+  echo "No C++ sources found under systems/, interfaces/ or examples/." >&2
+  exit 1
+fi
+if [ "${usage_fix:-false}" = "true" ]; then
+  clang-format -i "${sources[@]}"
+else
+  clang-format --dry-run --Werror "${sources[@]}"
+fi
 '''
 
 [tasks.doc]

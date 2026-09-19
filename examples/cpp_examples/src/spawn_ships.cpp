@@ -1,4 +1,6 @@
 #include <csignal>
+#include <exception>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <sstream>
@@ -22,10 +24,10 @@ static constexpr double SPAWN_LATITUDE = 1.2605794416293148;
 static constexpr double SPAWN_LONGITUDE = 103.7516212463379;
 static constexpr double SPAWN_ALTITUDE = 0.0;
 static constexpr double OFFSET = 0.0001;
-int vessel_id = 0;
+static int vessel_id = 0;
 
 template <typename T>
-T random_choice(const std::vector<T>& vec)
+static T random_choice(const std::vector<T>& vec)
 {
     static std::mt19937 gen(std::random_device{}());
     std::uniform_int_distribution<> dist(0, vec.size() - 1);
@@ -47,7 +49,7 @@ public:
         pose_subscription_ = this->create_subscription<VesselPositionArray>(
             "poses",
             rclcpp::QoS(10),
-            [this](const VesselPositionArray::SharedPtr msg) {
+            [this](const VesselPositionArray::ConstSharedPtr& msg) {
                 this->poses_callback(msg);
             });
 
@@ -153,7 +155,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "lrauv";
-        std::string name = "lrauv_" + std::to_string(vessel_id);
+        const std::string name = "lrauv_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -209,7 +211,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "x500";
-        std::string name = "x500_" + std::to_string(vessel_id);
+        const std::string name = "x500_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -255,7 +257,7 @@ public:
         lotusim_msgs::msg::MASCmd msg;
         msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
         msg.model_name = "dtmb_hull";
-        std::string name = "dtmb_" + std::to_string(vessel_id);
+        const std::string name = "dtmb_" + std::to_string(vessel_id);
         msg.vessel_name = name;
         spawned_vessels_.push_back(name);
 
@@ -304,7 +306,7 @@ public:
             lotusim_msgs::msg::MASCmd msg;
             msg.cmd_type = lotusim_msgs::msg::MASCmd::CREATE_CMD;
             msg.model_name = "dtmb_hull";
-            std::string name = "dtmb_" + std::to_string(vessel_id);
+            const std::string name = "dtmb_" + std::to_string(vessel_id);
             msg.vessel_name = name;
             spawned_vessels_.push_back(name);
 
@@ -339,7 +341,7 @@ public:
         auto send_goal_options =
             rclcpp_action::Client<MASCmdArray>::SendGoalOptions();
         send_goal_options.goal_response_callback =
-            [](GoalHandleMASCmdArray::SharedPtr goal_handle) {
+            [](const GoalHandleMASCmdArray::SharedPtr& goal_handle) {
                 if (!goal_handle) {
                     RCLCPP_ERROR(
                         rclcpp::get_logger("rclcpp"),
@@ -387,7 +389,7 @@ public:
             mas_array_action_client_->async_send_goal(goal_msg);
         exec.spin_until_future_complete(goal_handle_future);
 
-        auto goal_handle = goal_handle_future.get();
+        const auto& goal_handle = goal_handle_future.get();
         if (!goal_handle) {
             RCLCPP_ERROR(this->get_logger(), "Delete goal rejected");
             return;
@@ -403,7 +405,7 @@ public:
 
 private:
     void poses_callback(
-        const lotusim_msgs::msg::VesselPositionArray::SharedPtr msg)
+        const lotusim_msgs::msg::VesselPositionArray::ConstSharedPtr& msg)
     {
         for (const auto& vessel : msg->vessels) {
             vessel_poses_[vessel.vessel_name] = std::make_pair(
@@ -436,40 +438,48 @@ private:
 
 int main(int argc, char** argv)
 {
-    rclcpp::init(argc, argv);
+    try {
+        rclcpp::init(argc, argv);
 
-    auto node = std::make_shared<ExampleNode>();
+        auto node = std::make_shared<ExampleNode>();
 
-    // create ships
-    node->spawn_multiple_circling_ship(2);
-    rclcpp::executors::SingleThreadedExecutor spawn_wait_exec;
-    spawn_wait_exec.add_node(node);
-    auto start = std::chrono::steady_clock::now();
-    while (std::chrono::steady_clock::now() - start < 3s) {
-        spawn_wait_exec.spin_some(100ms);
+        // create ships
+        node->spawn_multiple_circling_ship(2);
+        rclcpp::executors::SingleThreadedExecutor spawn_wait_exec;
+        spawn_wait_exec.add_node(node);
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < 3s) {
+            spawn_wait_exec.spin_some(100ms);
+        }
+        spawn_wait_exec.remove_node(node);
+        node->send_random_waypoint_request("dtmb_0");
+
+        rclcpp::executors::SingleThreadedExecutor exec;
+        exec.add_node(node);
+
+        // install signal handler after init
+        std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
+        std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
+
+        // Spin manually so we can break on signal
+        while (rclcpp::ok() && !g_shutdown_requested) {
+            exec.spin_some(100ms);
+        }
+
+        // ROS is still up here — cleanup works
+        RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
+        node->delete_all_vessels(exec);
+
+        exec.remove_node(node);
+        node.reset();
+
+        rclcpp::shutdown();
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal: " << e.what() << '\n';
+        return 1;
+    } catch (...) {
+        std::cerr << "Fatal: unknown exception\n";
+        return 1;
     }
-    spawn_wait_exec.remove_node(node);
-    node->send_random_waypoint_request("dtmb_0");
-
-    rclcpp::executors::SingleThreadedExecutor exec;
-    exec.add_node(node);
-
-    // install signal handler after init
-    std::signal(SIGINT, [](int) { g_shutdown_requested = true; });
-    std::signal(SIGTERM, [](int) { g_shutdown_requested = true; });
-
-    // Spin manually so we can break on signal
-    while (rclcpp::ok() && !g_shutdown_requested) {
-        exec.spin_some(100ms);
-    }
-
-    // ROS is still up here — cleanup works
-    RCLCPP_INFO(node->get_logger(), "Shutting down, deleting vessels...");
-    node->delete_all_vessels(exec);
-
-    exec.remove_node(node);
-    node.reset();
-
-    rclcpp::shutdown();
     return 0;
 }

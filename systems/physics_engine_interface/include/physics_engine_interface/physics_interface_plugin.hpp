@@ -125,7 +125,7 @@ private:
     void createDomainInterface(
         const gz::sim::Entity& entity,
         const std::string& vessel_name,
-        sdf::ElementPtr physics_sdf,
+        const sdf::ElementPtr& physics_sdf,
         const lotusim::gazebo::DomainType& domain,
         std::unordered_map<
             gz::sim::Entity,

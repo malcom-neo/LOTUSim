@@ -144,9 +144,9 @@ public:
         auto goal_msg = MASCmdArray::Goal();
 
         for (int i = 0; i < n_ships; ++i) {
-            double angle = (2.0 * M_PI / n_ships) * i;
-            double lat_offset = (radius_m / 111111.0) * std::cos(angle);
-            double lon_offset =
+            const double angle = (2.0 * M_PI / n_ships) * i;
+            const double lat_offset = (radius_m / 111111.0) * std::cos(angle);
+            const double lon_offset =
                 (radius_m /
                  (111111.0 * std::cos(SPAWN_LATITUDE * M_PI / 180.0))) *
                 std::sin(angle);
@@ -186,7 +186,7 @@ public:
     }
 
 private:
-    void poses_callback(const VesselPositionArray::SharedPtr msg)
+    void poses_callback(const VesselPositionArray::ConstSharedPtr& msg)
     {
         for (const auto& vessel : msg->vessels) {
             vessel_poses_[vessel.vessel_name] = std::make_pair(
