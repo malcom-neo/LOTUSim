@@ -94,7 +94,7 @@ public:
      */
     PlatformPowerManagerBase(
         const gz::sim::Entity& m_vessel_entity,
-        const std::string& m_vessel_name,
+        std::string m_vessel_name,
         rclcpp::Node::SharedPtr node,
         sdf::ElementPtr sdfptr);
 
@@ -123,7 +123,7 @@ public:
         gz::sim::Entity vessel_entity,
         const std::string& vessel_name,
         rclcpp::Node::SharedPtr node,
-        sdf::ElementPtr sdfptr);
+        const sdf::ElementPtr& sdfptr);
 
     /**
      * @brief Change current active provider if it is depleted based on priority
@@ -141,13 +141,13 @@ private:
      * @brief Traverse sdf of the vessel and finds <lotusim_power> tag
      *        SDF order = priority order
      */
-    bool initPowerProvider(sdf::ElementPtr sdfptr);
+    bool initPowerProvider(const sdf::ElementPtr& sdfptr);
 
     /**
      * @brief for each sensor with a type attribute, constructs the
      *        appropriate PowerConsumer subclass
      */
-    bool initPowerConsumers(sdf::ElementPtr sdfptr);
+    bool initPowerConsumers(const sdf::ElementPtr& sdfptr);
 
     void publishPowerStatus();
 

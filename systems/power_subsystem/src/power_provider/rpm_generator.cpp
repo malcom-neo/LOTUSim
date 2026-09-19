@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 #include "power_subsystem/power_provider/fuel_properties.hpp"
@@ -20,8 +21,8 @@
 namespace lotusim::gazebo {
 
 RpmGenerator::RpmGenerator(
-    const std::string& generator_name,
-    const std::string& vessel_name,
+    std::string generator_name,
+    std::string vessel_name,
     const sdf::ElementPtr& _sdf,
     rclcpp::Node::SharedPtr node,
     std::shared_ptr<spdlog::logger> logger)
@@ -30,17 +31,17 @@ RpmGenerator::RpmGenerator(
           std::move(vessel_name),
           _sdf,
           std::move(node),
-          logger)
+          std::move(logger))
 {
     m_provider_type = ProviderType::RPMGenerator;
 
     // subscribe to /<vessel_name>/rpm
-    const std::string rpm_topic = "/" + vessel_name + "/rpm";
+    const std::string rpm_topic = "/" + m_vessel_name + "/rpm";
     m_rpm_sub =
         PowerProvider::m_node->create_subscription<std_msgs::msg::Float64>(
             rpm_topic,
             10,
-            [this](const std_msgs::msg::Float64::SharedPtr msg) {
+            [this](const std_msgs::msg::Float64::ConstSharedPtr& msg) {
                 onRpm(msg);
             });
 
@@ -61,7 +62,7 @@ RpmGenerator::RpmGenerator(
         rpm_topic);
 }
 
-void RpmGenerator::onRpm(const std_msgs::msg::Float64::SharedPtr msg)
+void RpmGenerator::onRpm(const std_msgs::msg::Float64::ConstSharedPtr& msg)
 {
     m_current_rpm.store(static_cast<float>(msg->data));
     m_logger->debug(

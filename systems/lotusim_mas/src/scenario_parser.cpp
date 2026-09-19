@@ -158,7 +158,7 @@ void ScenarioParser::appendPhysicsEngineInterface(
     std::unordered_map<std::string, YAML::Node> domain_map;
     if (node["domains"] && node["domains"].IsSequence()) {
         for (const auto& item : node["domains"]) {
-            YAML::Node d = item;
+            const YAML::Node d = item;
             const std::string key = getOrDefault<std::string>(d, "domain", "");
             if (!key.empty())
                 domain_map[key] = d;

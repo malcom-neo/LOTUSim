@@ -1,5 +1,7 @@
 #include "physics_engine_interface/physics_interface_base.hpp"
 
+#include <utility>
+
 #include "physics_engine_interface/ros2_interface.hpp"
 #include "physics_engine_interface/xdyn_websocket.hpp"
 
@@ -8,7 +10,7 @@ namespace lotusim::gazebo {
 std::shared_ptr<PhysicsInterfaceBase> PhysicsInterfaceBase::createInterface(
     const InterfaceType& protocol_type,
     std::shared_ptr<std::unordered_map<gz::sim::Entity, std::string>> cmd,
-    std::shared_ptr<spdlog::logger> logger)
+    const std::shared_ptr<spdlog::logger>& logger)
 {
     try {
         std::shared_ptr<PhysicsInterfaceBase> client;
@@ -35,7 +37,7 @@ std::shared_ptr<PhysicsInterfaceBase> PhysicsInterfaceBase::createInterface(
                 "PhysicsInterfacePlugin::createInterface: failed to create connection.");
             return nullptr;
         }
-        client->setSharedCmd(cmd);
+        client->setSharedCmd(std::move(cmd));
         client->setLogger(logger);
         return client;
     } catch (...) {

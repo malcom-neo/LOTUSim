@@ -30,20 +30,6 @@
 
 namespace lotusim::gazebo {
 
-std::shared_ptr<RenderInterfaceBase> CreateRenderInterface(
-    const std::string& protocol,
-    const std::string& world_name,
-    std::shared_ptr<spdlog::logger> logger)
-{
-    if (protocol == "TCPUDP") {
-        return std::make_shared<TcpUdpInterface>(world_name, logger);
-    }
-    if (protocol == "ROS2") {
-        return std::make_shared<ROSInterface>(world_name, logger);
-    }
-    return nullptr;
-};
-
 /**
  * @brief RenderPlugin is for basic rendering functions.
  * For more specific functions, please create your own user interface function
@@ -66,7 +52,7 @@ class RenderPlugin : public gz::sim::System,
 public:
     RenderPlugin();
 
-    ~RenderPlugin();
+    ~RenderPlugin() override;
 
     void Configure(
         const gz::sim::Entity& _entity,

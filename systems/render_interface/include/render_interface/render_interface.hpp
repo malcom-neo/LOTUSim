@@ -33,9 +33,9 @@ namespace lotusim::gazebo {
 class RenderInterfaceBase {
 public:
     RenderInterfaceBase(
-        const std::string& world_name,
+        std::string world_name,
         std::shared_ptr<spdlog::logger> logger)
-        : m_logger(logger), m_world_name(world_name) {};
+        : m_logger(std::move(logger)), m_world_name(std::move(world_name)) {};
 
     virtual ~RenderInterfaceBase() = default;
 

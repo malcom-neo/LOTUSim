@@ -9,6 +9,8 @@
  */
 #include "lotusim_mas/scenario_manager.hpp"
 
+#include <utility>
+
 #include "lotusim_common/common.hpp"
 
 namespace lotusim::scenario {
@@ -20,7 +22,7 @@ ScenarioManager::ScenarioManager(
     gz::sim::EntityComponentManager* ecm)
     : m_logger{std::move(logger)}
     , m_ros_node{std::move(node)}
-    , m_spawner{spawner}
+    , m_spawner{std::move(spawner)}
     , m_ecm{ecm}
 {
     m_callback_group.push_back(m_ros_node->create_callback_group(
@@ -51,8 +53,8 @@ ScenarioManager::ScenarioManager(
 }
 
 void ScenarioManager::handleLaunch(
-    const std::shared_ptr<lotusim_msgs::srv::String::Request> request,
-    std::shared_ptr<lotusim_msgs::srv::String::Response> response)
+    const std::shared_ptr<lotusim_msgs::srv::String::Request>& request,
+    const std::shared_ptr<lotusim_msgs::srv::String::Response>& response)
 {
     const char* scenario_env = std::getenv("LOTUSIM_SCENARIOS_PATH");
     if (!scenario_env) {
@@ -85,27 +87,28 @@ void ScenarioManager::handleLaunch(
         return;
     }
 
-    m_current_scenario = std::move(cfg);
+    m_current_scenario = std::move(*cfg);
+    const ScenarioConfig& scenario = *m_current_scenario;
 
     if (m_ecm) {
-        applyReferencePosition(m_current_scenario->reference_position);
+        applyReferencePosition(scenario.reference_position);
     }
 
-    int spawned = spawnAgents(*m_current_scenario);
+    int spawned = spawnAgents(scenario);
 
     m_logger->info(
         "ScenarioManager::handleLaunch: Scenario '{}' started. {}/{} agents spawned.",
-        m_current_scenario->name,
+        scenario.name,
         spawned,
-        static_cast<int>(m_current_scenario->agents.size()));
+        static_cast<int>(scenario.agents.size()));
 
     response->success = true;
-    response->message = "Scenario launched: " + m_current_scenario->name;
+    response->message = "Scenario launched: " + scenario.name;
 }
 
 void ScenarioManager::handleStop(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
-    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>&,
+    const std::shared_ptr<std_srvs::srv::Trigger::Response>& response)
 {
     if (!m_current_scenario) {
         m_logger->warn("ScenarioManager::handleStop: No scenario is running.");
@@ -163,7 +166,7 @@ lotusim_msgs::msg::MASCmd ScenarioManager::agentToMASCmd(
     cmd.geo_point.latitude = agent.position.latitude;
     cmd.geo_point.longitude = agent.position.longitude;
     cmd.geo_point.altitude = agent.position.altitude;
-    cmd.heading = agent.heading;
+    cmd.heading = static_cast<float>(agent.heading);
 
     // heading → yaw (Z-up, East=0, right-hand rule)
     const double yaw = agent.heading * M_PI / 180.0;

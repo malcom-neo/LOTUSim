@@ -26,8 +26,8 @@ namespace lotusim::gazebo {
 
 namespace ip = boost::asio::ip;
 
-constexpr unsigned short DEFAULT_UDP_PORT = 23456;
-constexpr unsigned short DEFAULT_TCP_PORT = 23457;
+constexpr ip::port_type DEFAULT_UDP_PORT = 23456;
+constexpr ip::port_type DEFAULT_TCP_PORT = 23457;
 
 /**
  * @brief TCPUDP interface for Renderer
@@ -43,7 +43,7 @@ constexpr unsigned short DEFAULT_TCP_PORT = 23457;
 class TcpUdpInterface final : public RenderInterfaceBase {
 public:
     TcpUdpInterface(
-        const std::string& world_name,
+        std::string world_name,
         std::shared_ptr<spdlog::logger> logger);
 
     ~TcpUdpInterface() override;
@@ -80,11 +80,11 @@ public:
 
     bool destroyVessel(const std::string& vessel_name) override;
 
-    virtual bool customPreUpdates(
+    bool customPreUpdates(
         const gz::sim::UpdateInfo& _info,
         gz::sim::EntityComponentManager& _ecm) override;
 
-    virtual bool customUpdates(
+    bool customUpdates(
         const gz::sim::UpdateInfo& _info,
         const gz::sim::EntityComponentManager& _ecm) override;
 

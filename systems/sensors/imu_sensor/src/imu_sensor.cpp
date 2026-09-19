@@ -9,6 +9,8 @@
  */
 #include "imu_sensor/imu_sensor.hpp"
 
+#include <utility>
+
 namespace lotusim::sensor {
 
 IMUSensor::IMUSensor(
@@ -16,21 +18,21 @@ IMUSensor::IMUSensor(
     rclcpp::Node::SharedPtr node,
     const gz::sim::Entity& vessel_entity,
     const gz::sim::Entity& sensor_entity,
-    const std::string& parent_name,
-    const std::string& sensor_name)
+    std::string parent_name,
+    std::string sensor_name)
     : CustomSensor(
-          logger,
-          node,
+          std::move(logger),
+          std::move(node),
           vessel_entity,
           sensor_entity,
-          parent_name,
-          sensor_name)
+          std::move(parent_name),
+          std::move(sensor_name))
     , m_update_period(std::chrono::milliseconds(10))
     , m_last_pub(std::chrono::seconds(0))
 {
 }
 
-IMUSensor::~IMUSensor() {}
+IMUSensor::~IMUSensor() = default;
 
 bool IMUSensor::CustomSensorLoad(const sdf::Sensor&)
 {

@@ -111,9 +111,14 @@
         # invalidating the build.
         shellTooling = [
           pkgs.mise
+          pkgs.usage
           pkgs.nodejs_22
           pkgs.doxygen
           pkgs.clang-tools
+          (pkgs.runCommandLocal "run-clang-tidy" { } ''
+            mkdir -p $out/bin
+            ln -s ${pkgs.llvmPackages.clang-unwrapped}/bin/run-clang-tidy $out/bin/
+          '')
           # docs/Doxyfile sets HAVE_DOT with an empty DOT_PATH, so doxygen
           # resolves graphviz's dot from PATH.
           pkgs.graphviz
@@ -557,6 +562,7 @@
             source "${pkgs.bash-completion}/share/bash-completion/bash_completion"
 
             LOTUSIM_PATH="''${LOTUSIM_PATH:-$PWD}"
+            [[ $- == *i* ]] && eval "$(mise completion bash --include-bash-completion-lib)"
 
             # What `source install/setup.bash` sets, exported up front so the
             # examples run straight after `mise run build`. A directory that

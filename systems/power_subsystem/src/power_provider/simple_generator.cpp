@@ -10,6 +10,7 @@
 #include "power_subsystem/power_provider/simple_generator.hpp"
 
 #include <algorithm>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 #include "power_subsystem/power_provider/fuel_properties.hpp"
@@ -20,8 +21,8 @@
 namespace lotusim::gazebo {
 
 SimpleGenerator::SimpleGenerator(
-    const std::string& generator_name,
-    const std::string& vessel_name,
+    std::string generator_name,
+    std::string vessel_name,
     const sdf::ElementPtr& _sdf,
     rclcpp::Node::SharedPtr node,
     std::shared_ptr<spdlog::logger> logger)
@@ -30,7 +31,7 @@ SimpleGenerator::SimpleGenerator(
           std::move(vessel_name),
           _sdf,
           std::move(node),
-          logger)
+          std::move(logger))
 {
     m_provider_type = ProviderType::SimpleGenerator;
     m_logger->info(

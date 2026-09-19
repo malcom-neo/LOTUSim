@@ -73,8 +73,8 @@ public:
         const std::string& consumer_name,
         const std::string& vessel_name,
         const sdf::ElementPtr& sdf,
-        rclcpp::Node::SharedPtr node,
-        std::shared_ptr<spdlog::logger> logger);
+        const rclcpp::Node::SharedPtr& node,
+        const std::shared_ptr<spdlog::logger>& logger);
 
     virtual ~PowerConsumer() = default;
 
@@ -162,7 +162,7 @@ public:
         return m_vessel_name;
     }
 
-    void setPriority(const int& priority)
+    void setPriority(int priority)
     {
         m_priority = priority;
     }
@@ -176,8 +176,8 @@ protected:
      * @param sdf         lotusim_power sdf pointer
      */
     PowerConsumer(
-        const std::string& consumer_name,
-        const std::string& vessel_name,
+        std::string consumer_name,
+        std::string vessel_name,
         const sdf::ElementPtr& sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger)

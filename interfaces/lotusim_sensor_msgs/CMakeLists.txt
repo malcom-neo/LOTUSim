@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.22)
 project(lotusim_sensor_msgs)
 
 find_package(geometry_msgs REQUIRED)

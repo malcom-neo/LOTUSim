@@ -47,8 +47,8 @@ public:
      * @param vessel_name for topic creation
      */
     RpmGenerator(
-        const std::string& generator_name,
-        const std::string& vessel_name,
+        std::string generator_name,
+        std::string vessel_name,
         const sdf::ElementPtr& _sdf,
         rclcpp::Node::SharedPtr node,
         std::shared_ptr<spdlog::logger> logger);
@@ -74,7 +74,7 @@ public:
     float availablePowerW() const override;
 
 private:
-    void onRpm(const std_msgs::msg::Float64::SharedPtr msg);
+    void onRpm(const std_msgs::msg::Float64::ConstSharedPtr& msg);
 
     float m_rated_rpm{1000.0f};
 

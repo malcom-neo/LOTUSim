@@ -33,15 +33,15 @@ public:
         const std::string& sensor_name);
 
     /// \brief Class destructor
-    ~SubseaPressureSensor();
+    ~SubseaPressureSensor() override;
 
     /// \brief Update sensor measurement
-    virtual bool UpdateSensor(
+    bool UpdateSensor(
         const gz::sim::UpdateInfo& _info,
         const gz::sim::EntityComponentManager& _ecm) final;
 
 private:
-    virtual bool CustomSensorLoad(const sdf::Sensor& _sdf) final;
+    bool CustomSensorLoad(const sdf::Sensor& _sdf) final;
 
     /// \brief Sensor m_saturation (max. value for output pressure in Pa)
     double m_saturation;

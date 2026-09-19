@@ -17,6 +17,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #include "lotusim_common/common.hpp"
 #include "lotusim_common/logger.hpp"
@@ -66,7 +67,8 @@ class PhysicsInterfaceBase {
 public:
     PhysicsInterfaceBase(const std::string& interface_name = "")
     {
-        std::string logger_name = interface_name + "_physics_engine_output";
+        const std::string logger_name =
+            interface_name + "_physics_engine_output";
         m_engine_logger = logger::createConsoleAndFileLogger(
             logger_name,
             logger_name + ".txt");
@@ -89,7 +91,7 @@ public:
     static std::shared_ptr<PhysicsInterfaceBase> createInterface(
         const InterfaceType& protocol_type,
         std::shared_ptr<std::unordered_map<gz::sim::Entity, std::string>> cmd,
-        std::shared_ptr<spdlog::logger> logger);
+        const std::shared_ptr<spdlog::logger>& logger);
 
     /**
      * @brief Configure Interface upon creation
@@ -118,8 +120,8 @@ public:
      * @return false
      */
     virtual bool removeInterface(
-        const gz::sim::Entity& _entity,
-        const DomainType& domain_type = DomainType::Unknown)
+        const gz::sim::Entity& /*_entity*/,
+        const DomainType& /*domain_type*/ = DomainType::Unknown)
     {
         return true;
     };
@@ -187,7 +189,7 @@ public:
      */
     void setLogger(std::shared_ptr<spdlog::logger> logger)
     {
-        m_logger = logger;
+        m_logger = std::move(logger);
     }
 
     void logEngineState(
@@ -196,7 +198,7 @@ public:
         const std::string& model_name = "")
     {
         if (m_engine_logger) {
-            std::string excelRow = fmt::format(
+            const std::string excelRow = fmt::format(
                 "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 DomainTypeToStringMap[domain],
                 state.time,
@@ -222,7 +224,7 @@ public:
     void setSharedCmd(
         std::shared_ptr<std::unordered_map<gz::sim::Entity, std::string>> _cmd)
     {
-        m_models_cmd_map_ptr = _cmd;
+        m_models_cmd_map_ptr = std::move(_cmd);
     }
 
 protected:
